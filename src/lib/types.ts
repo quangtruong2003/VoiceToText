@@ -2,19 +2,6 @@
  * Type definitions for the Voice Stream Engine
  */
 
-// Re-export configuration types
-export type {
-  AudioConfig,
-  ConnectionConfig,
-  PriorityConfig,
-  StreamConfig
-} from './voice-stream-engine';
-
-export type {
-  StreamEvents,
-  StreamMetrics
-} from './voice-stream-engine';
-
 // Additional types for the streaming system
 export interface AudioChunk {
   /** Timestamp when chunk was captured */
@@ -91,6 +78,32 @@ export interface AudioDeviceInfo {
   sampleRates: number[];
   /** Number of channels */
   channelCount: number;
+}
+
+// Local type definitions (duplicated to avoid circular deps)
+export interface AudioConfig {
+  sampleRate: number;
+  channels: number;
+  opusApplication: 'voip' | 'audio' | 'lowdelay';
+  opusBitrate: number;
+  opusFrameSize: number;
+  chunkIntervalMs: number;
+}
+
+export interface ConnectionConfig {
+  endpoint: string;
+  useHttp2: boolean;
+  poolSize: number;
+  connectionTimeout: number;
+  useTlsSessionResumption: boolean;
+  pingInterval: number;
+}
+
+export interface PriorityConfig {
+  elevateProcessPriority: boolean;
+  niceValue: number;
+  ioPriority: number;
+  cpuAffinity: number[];
 }
 
 export interface StreamOptions {

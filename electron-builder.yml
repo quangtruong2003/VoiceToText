@@ -2,21 +2,28 @@ appId: com.voicetotext.app
 productName: Voice to Text
 directories:
   output: release
+  buildResources: build
+compression: maximum
 win:
   target:
-    - nsis
+    - nsis-web
   icon: public/icon.png
-nsis:
-  oneClick: true
+publish:
+  provider: github
+  owner: quangtruong2003
+  repo: VoiceToText
+nsisWeb:
+  oneClick: false
   perMachine: false
-  allowToChangeInstallationDirectory: false
+  allowToChangeInstallationDirectory: true
 files:
   - dist/**/*
   - dist-electron/**/*
-  - node_modules/@nut-tree-fork/**/*
-  - public/**/*
-extraResources:
-  - from: node_modules/@nut-tree-fork
-    to: node_modules/@nut-tree-fork
-  - from: public/icon.png
-    to: icon.png
+  - package.json
+  - "!**/*.map"
+  - "!**/node_modules/.cache/**"
+  - "!**/*.ts"
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/@nut-tree-fork/**"

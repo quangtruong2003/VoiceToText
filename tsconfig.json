@@ -22,7 +22,15 @@
         "forceConsistentCasingInFileNames": true
     },
     "include": [
-        "src"
+        "src",
+        "src/components",
+        "src/lib/performance-monitoring.ts",
+        "src/lib/performance-monitor.ts",
+        "src/lib/types.ts"
+    ],
+    "exclude": [
+        "src/lib/http2-stream.ts",
+        "src/lib/voice-server.ts"
     ],
     "references": [
         {

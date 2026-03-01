@@ -7,6 +7,8 @@ node_modules/
 dist/
 dist-electron/
 build/
+release/
+docs/
 
 # Logs
 logs/
