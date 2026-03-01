@@ -146,6 +146,7 @@ export function SettingsView() {
     const [customEndpoint, setCustomEndpoint] = useState('')
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
     const [showApiKey, setShowApiKey] = useState(false)
+    const [startWithWindows, setStartWithWindows] = useState(false)
 
     useEffect(() => {
         window.electronAPI.getConfig().then((config) => {
@@ -159,6 +160,7 @@ export function SettingsView() {
             if (config.hasEnvKey) setHasEnvKey(true)
             if (config.apiType) setApiType(config.apiType)
             if (config.customEndpoint) setCustomEndpoint(config.customEndpoint)
+            if (config.startWithWindows !== undefined) setStartWithWindows(config.startWithWindows)
         })
     }, [])
 
@@ -201,6 +203,17 @@ export function SettingsView() {
         setLanguage(newLang)
         await window.electronAPI.saveConfig({ language: newLang })
         showToast('Đã lưu ngôn ngữ!', 'success')
+    }
+
+    const handleStartWithWindowsChange = async (enabled: boolean) => {
+        setStartWithWindows(enabled)
+        const result = await window.electronAPI.setStartWithWindows(enabled)
+        if (result.success) {
+            showToast(enabled ? 'Đã bật khởi động cùng Windows!' : 'Đã tắt khởi động cùng Windows!', 'success')
+        } else {
+            setStartWithWindows(!enabled)
+            showToast(`Lỗi: ${result.error || 'Không thể thay đổi cài đặt'}`, 'error')
+        }
     }
 
     const handleApiTypeChange = async (newType: 'google' | 'antigravity' | 'custom') => {
@@ -323,6 +336,24 @@ export function SettingsView() {
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+
+                                <div className="settings-section">
+                                    <label className="settings-label">Khởi động</label>
+                                    <div className="toggle-setting">
+                                        <span className="toggle-label">Bắt đầu cùng Windows</span>
+                                        <button
+                                            className={`toggle-switch ${startWithWindows ? 'active' : ''}`}
+                                            onClick={() => handleStartWithWindowsChange(!startWithWindows)}
+                                            role="switch"
+                                            aria-checked={startWithWindows}
+                                        >
+                                            <span className="toggle-slider" />
+                                        </button>
+                                    </div>
+                                    <p className="settings-hint">
+                                        Tự động khởi động ứng dụng khi đăng nhập vào Windows
+                                    </p>
                                 </div>
                             </div>
                         </div>

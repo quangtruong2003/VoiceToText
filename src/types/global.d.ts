@@ -6,6 +6,7 @@ interface AppConfig {
   customPrompt: string
   apiType: 'google' | 'antigravity' | 'custom'
   customEndpoint: string
+  startWithWindows: boolean
   hasEnvKey?: boolean
 }
 
@@ -120,6 +121,7 @@ interface ElectronAPI {
   onInjectionComplete: (callback: (result: { success: boolean }) => void) => () => void
   getConfig: () => Promise<AppConfig>
   saveConfig: (config: Partial<AppConfig>) => Promise<{ success: boolean }>
+  setStartWithWindows: (enabled: boolean) => Promise<{ success: boolean; error?: string }>
   validateApiKey: (apiKey: string) => Promise<{valid: boolean, error?: string}>
   closeSettings: () => void
   openExternal: (url: string) => void

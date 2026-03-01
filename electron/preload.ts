@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('get-config')
   },
 
+  setStartWithWindows: (enabled: boolean) => {
+    return ipcRenderer.invoke('set-start-with-windows', enabled)
+  },
+
   saveConfig: (config: Record<string, any>) => {
     return ipcRenderer.invoke('save-config', config)
   },

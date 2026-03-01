@@ -183,8 +183,30 @@ export function RecorderOverlay() {
                 handleStopAndTranscribe()
             }
         })
-        return cleanupForceStop
-    }, [appState, handleStopAndTranscribe])
+
+        // Handle ESC key to cancel/stop recording
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (appState === 'recording') {
+                    // Stop recording and discard
+                    if (isRecording) stopRecording()
+                    setIsVisible(false)
+                    setAppState('idle')
+                    setTranscript('')
+                    setError(null)
+                    setPreservedBlob(null)
+                    window.electronAPI.cancelRecording()
+                }
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+
+        return () => {
+            cleanupForceStop()
+            window.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [appState, handleStopAndTranscribe, isRecording, stopRecording])
 
     const handleConfirm = useCallback(() => {
         if (transcript.trim()) {

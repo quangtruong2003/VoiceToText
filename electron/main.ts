@@ -41,6 +41,7 @@ interface AppConfig {
   customPrompt: string
   apiType: 'google' | 'antigravity' | 'custom'
   customEndpoint: string
+  startWithWindows: boolean
 }
 
 function loadEnvApiKey(): string {
@@ -59,10 +60,10 @@ function loadConfig(): AppConfig {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'))
-      return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '', ...config }
+      return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '', startWithWindows: false, ...config }
     }
   } catch {}
-  return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '' }
+  return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '', startWithWindows: false }
 }
 
 function getApiKey(): string {
@@ -89,6 +90,29 @@ function saveConfig(config: Partial<AppConfig>) {
   const existing = loadConfig()
   const merged = { ...existing, ...config }
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2))
+
+  // Handle auto-start setting changes
+  if (config.startWithWindows !== undefined) {
+    setAutoStart(config.startWithWindows)
+  }
+}
+
+function setAutoStart(enabled: boolean) {
+  if (process.platform === 'win32') {
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      path: process.execPath,
+      args: ['--hidden']
+    })
+  }
+}
+
+function getAutoStartStatus(): boolean {
+  if (process.platform === 'win32') {
+    const settings = app.getLoginItemSettings()
+    return settings.openAtLogin
+  }
+  return false
 }
 
 function setupPermissions() {
@@ -561,7 +585,19 @@ function setupIPC() {
   ipcMain.handle('get-config', () => {
     const config = loadConfig()
     const envKey = loadEnvApiKey()
-    return { ...config, apiKey: envKey || config.apiKey, hasEnvKey: !!envKey }
+    // Get actual auto-start status from system
+    const autoStartStatus = getAutoStartStatus()
+    return { ...config, apiKey: envKey || config.apiKey, hasEnvKey: !!envKey, startWithWindows: autoStartStatus }
+  })
+
+  ipcMain.handle('set-start-with-windows', (_event, enabled: boolean) => {
+    try {
+      setAutoStart(enabled)
+      saveConfig({ startWithWindows: enabled })
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
   })
 
   ipcMain.handle('save-config', (_event, config: Partial<AppConfig>) => {
@@ -630,7 +666,13 @@ app.whenReady().then(() => {
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.voicetotext.app')
   }
-  
+
+  // Apply auto-start setting on startup
+  const config = loadConfig()
+  if (config.startWithWindows !== undefined) {
+    setAutoStart(config.startWithWindows)
+  }
+
   setupPermissions()
   createOverlayWindow()
   createTray()
