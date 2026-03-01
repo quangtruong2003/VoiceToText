@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('set-start-with-windows', enabled)
   },
 
+  registerHotkey: (hotkey: string) => {
+    ipcRenderer.send('register-hotkey', hotkey)
+  },
+
   saveConfig: (config: Record<string, any>) => {
     return ipcRenderer.invoke('save-config', config)
   },

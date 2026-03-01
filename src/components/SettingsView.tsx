@@ -27,6 +27,20 @@ const API_PROVIDERS = [
     },
 ]
 
+// Windows reserved keys that should not be used as custom hotkeys
+const WINDOWS_RESERVED_KEYS = [
+    'Alt', 'Control', 'Ctrl', 'Shift', 'Meta', 'Win', 'Tab', 'Escape', 'Esc',
+    'Enter', 'Return', 'Backspace', 'Delete', 'Insert', 'Home', 'End',
+    'PageUp', 'PageDown', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+    'Space', 'CapsLock', 'NumLock', 'ScrollLock', 'PrintScreen',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+]
+
+// Keys that require modifier (Win key) to be valid
+const MODIFIER_REQUIRED_KEYS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
 function CollapsibleSection({
     title,
     icon,
@@ -133,7 +147,7 @@ function Toast({ message, type, onClose }: { message: string, type: 'success' | 
 }
 
 export function SettingsView() {
-    const [activeTab, setActiveTab] = useState<'recording' | 'api' | 'performance'>('recording')
+    const [activeTab, setActiveTab] = useState<'settings' | 'api' | 'performance'>('settings')
     const [apiKey, setApiKey] = useState('')
     const [apiKeyInput, setApiKeyInput] = useState('')
     const [customPrompt, setCustomPrompt] = useState('')
@@ -148,12 +162,15 @@ export function SettingsView() {
     const [showApiKey, setShowApiKey] = useState(false)
     const [startWithWindows, setStartWithWindows] = useState(false)
 
+    // Hotkey customization state
+    const [hotkey, setHotkey] = useState({ win: true, alt: true, key: 'H' })
+    const [isRecordingHotkey, setIsRecordingHotkey] = useState(false)
+
     useEffect(() => {
         window.electronAPI.getConfig().then((config) => {
             if (config.apiKey) {
                 setApiKey(config.apiKey)
                 setApiKeyInput(config.apiKey)
-                // API validation now only triggers on explicit save action (handleSaveApiKey)
             }
             if (config.language) setLanguage(config.language)
             if (config.customPrompt) setCustomPrompt(config.customPrompt)
@@ -161,6 +178,14 @@ export function SettingsView() {
             if (config.apiType) setApiType(config.apiType)
             if (config.customEndpoint) setCustomEndpoint(config.customEndpoint)
             if (config.startWithWindows !== undefined) setStartWithWindows(config.startWithWindows)
+            if (config.hotkey) {
+                const parts = config.hotkey.split('+')
+                setHotkey({
+                    win: parts.includes('Win'),
+                    alt: parts.includes('Alt'),
+                    key: parts.find(p => !['Win', 'Alt', 'Control', 'Ctrl', 'Shift'].includes(p)) || 'H'
+                })
+            }
         })
     }, [])
 
@@ -235,6 +260,96 @@ export function SettingsView() {
 
     const providerIndex = API_PROVIDERS.findIndex(p => p.id === apiType)
 
+    // Handle hotkey capture
+    const handleHotkeyCapture = useCallback((e: KeyboardEvent) => {
+        if (!isRecordingHotkey) return
+
+        e.preventDefault()
+        e.stopPropagation()
+
+        const key = e.key
+        const ctrl = e.ctrlKey || e.metaKey
+        const alt = e.altKey
+        const shift = e.shiftKey
+        const win = e.metaKey
+
+        // Check if it's a reserved key
+        if (WINDOWS_RESERVED_KEYS.includes(key) || key === 'Meta') {
+            showToast('Phím này không thể sử dụng làm phím tắt', 'error')
+            return
+        }
+
+        // Build the hotkey string
+        let hotkeyParts: string[] = []
+        let finalKey = key.toUpperCase()
+
+        // Handle modifier keys
+        if (win) {
+            hotkeyParts.push('Win')
+            finalKey = key.toUpperCase()
+        }
+        if (alt || key === 'Alt') {
+            hotkeyParts.push('Alt')
+        }
+        if (ctrl || key === 'Control' || key === 'Ctrl') {
+            hotkeyParts.push('Control')
+        }
+        if (shift || key === 'Shift') {
+            hotkeyParts.push('Shift')
+        }
+
+        // If no modifier keys pressed, require Win key
+        if (!win && !alt && !ctrl && !shift) {
+            // Just a letter/number key - add Win by default
+            if (MODIFIER_REQUIRED_KEYS.includes(key.toUpperCase()) || /^[0-9]$/.test(key)) {
+                hotkeyParts = ['Win', key.toUpperCase()]
+            } else {
+                showToast('Cần có Win key (ví dụ: Win+Alt+Phím)', 'error')
+                return
+            }
+        } else {
+            // Check if we have at least one modifier (Win recommended)
+            if (!win && !alt) {
+                showToast('Cần có Win hoặc Alt key (tránh xung đột với phím hệ thống)', 'error')
+                return
+            }
+            // Add the final key
+            if (!['Win', 'Alt', 'Control', 'Ctrl', 'Shift'].includes(key.toUpperCase())) {
+                hotkeyParts.push(key.toUpperCase())
+            }
+        }
+
+        // Save the hotkey
+        const hotkeyString = hotkeyParts.join('+')
+        setHotkey({
+            win: hotkeyString.includes('Win'),
+            alt: hotkeyString.includes('Alt'),
+            key: hotkeyParts[hotkeyParts.length - 1]
+        })
+
+        // Save to config
+        window.electronAPI.saveConfig({ hotkey: hotkeyString })
+        window.electronAPI.registerHotkey(hotkeyString)
+
+        setIsRecordingHotkey(false)
+        showToast(`Đã lưu phím tắt: ${hotkeyString}`, 'success')
+    }, [isRecordingHotkey, showToast])
+
+    useEffect(() => {
+        if (isRecordingHotkey) {
+            window.addEventListener('keydown', handleHotkeyCapture)
+            return () => window.removeEventListener('keydown', handleHotkeyCapture)
+        }
+    }, [isRecordingHotkey, handleHotkeyCapture])
+
+    const getCurrentHotkeyDisplay = () => {
+        const parts = []
+        if (hotkey.win) parts.push('Win')
+        if (hotkey.alt) parts.push('Alt')
+        parts.push(hotkey.key)
+        return parts.join(' + ')
+    }
+
     return (
         <div className="settings-container">
             {toast && (
@@ -272,14 +387,14 @@ export function SettingsView() {
                 {/* Tab Navigation */}
                 <div className="settings-tabs">
                     <button
-                        className={`settings-tab ${activeTab === 'recording' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('recording')}
+                        className={`settings-tab ${activeTab === 'settings' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('settings')}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                         </svg>
-                        <span>Ghi âm</span>
+                        <span>Cài đặt</span>
                     </button>
                     <button
                         className={`settings-tab ${activeTab === 'api' ? 'active' : ''}`}
@@ -302,23 +417,25 @@ export function SettingsView() {
                     <div
                         className="settings-tab-indicator"
                         style={{
-                            transform: activeTab === 'recording' ? 'translateX(0)' : activeTab === 'api' ? 'translateX(calc(100% + 2px))' : 'translateX(calc(200% + 4px))'
+                            transform: activeTab === 'settings' ? 'translateX(0)' :
+                                activeTab === 'api' ? 'translateX(calc(100% + 2px))' :
+                                'translateX(calc(200% + 4px))'
                         }}
                     />
                 </div>
 
                 <div className="settings-body">
-                    {activeTab === 'recording' ? (
-                        /* Recording Tab */
+                    {activeTab === 'settings' ? (
+                        /* Settings Tab */
                         <div className="settings-section-group">
                             <div className="section-header">
                                 <span className="section-icon-wrap">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                                     </svg>
                                 </span>
-                                <span className="section-title">Ghi âm</span>
+                                <span className="section-title">Cài đặt</span>
                             </div>
 
                             <div className="section-content-inner">
@@ -339,7 +456,43 @@ export function SettingsView() {
                                 </div>
 
                                 <div className="settings-section">
-                                    <label className="settings-label">Khởi động</label>
+                                    <label className="settings-label">Phím tắt ghi âm</label>
+                                    <div className="hotkey-capture">
+                                        {isRecordingHotkey ? (
+                                            <div className="hotkey-recording">
+                                                <span className="recording-indicator"></span>
+                                                <span>Nhấn phím tắt mới...</span>
+                                                <button
+                                                    className="btn btn-ghost btn-small"
+                                                    onClick={() => setIsRecordingHotkey(false)}
+                                                >
+                                                    Hủy
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="hotkey-display-setting">
+                                                <div className="current-hotkey">
+                                                    <kbd>Win</kbd>
+                                                    <span>+</span>
+                                                    <kbd>Alt</kbd>
+                                                    <span>+</span>
+                                                    <kbd>{hotkey.key}</kbd>
+                                                </div>
+                                                <button
+                                                    className="btn btn-primary btn-small"
+                                                    onClick={() => setIsRecordingHotkey(true)}
+                                                >
+                                                    Đổi phím tắt
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="settings-hint">
+                                        Nhấn phím mới (cần có Win + Alt + phím khác)
+                                    </p>
+                                </div>
+
+                                <div className="settings-section">
                                     <div className="toggle-setting">
                                         <span className="toggle-label">Bắt đầu cùng Windows</span>
                                         <button
@@ -500,7 +653,7 @@ export function SettingsView() {
                                 title="Tùy chỉnh nâng cao"
                                 icon={
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                        <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                                     </svg>
                                 }
                                 defaultOpen={!!customPrompt}
@@ -540,11 +693,15 @@ export function SettingsView() {
 
                 <div className="settings-footer">
                     <div className="hotkey-display">
-                        <kbd>Win</kbd>
-                        <span className="hotkey-plus">+</span>
-                        <kbd>Alt</kbd>
-                        <span className="hotkey-plus">+</span>
-                        <kbd>H</kbd>
+                        {hotkey.win && <>
+                            <kbd>Win</kbd>
+                            <span className="hotkey-plus">+</span>
+                        </>}
+                        {hotkey.alt && <>
+                            <kbd>Alt</kbd>
+                            <span className="hotkey-plus">+</span>
+                        </>}
+                        <kbd>{hotkey.key}</kbd>
                     </div>
                     <span className="settings-footer-text">để bắt đầu ghi âm</span>
                 </div>

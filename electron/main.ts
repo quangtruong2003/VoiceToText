@@ -42,6 +42,7 @@ interface AppConfig {
   apiType: 'google' | 'antigravity' | 'custom'
   customEndpoint: string
   startWithWindows: boolean
+  hotkey: string
 }
 
 function loadEnvApiKey(): string {
@@ -60,10 +61,10 @@ function loadConfig(): AppConfig {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'))
-      return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '', startWithWindows: false, ...config }
+      return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '', startWithWindows: false, hotkey: 'Win+Alt+H', ...config }
     }
   } catch {}
-  return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '', startWithWindows: false }
+  return { apiKey: '', language: 'vi', customPrompt: '', apiType: 'google', customEndpoint: '', startWithWindows: false, hotkey: 'Win+Alt+H' }
 }
 
 function getApiKey(): string {
@@ -549,7 +550,29 @@ async function injectText(text: string) {
 }
 
 function registerGlobalShortcut() {
-  globalShortcut.register('Super+Alt+H', () => toggleRecording())
+  const config = loadConfig()
+  const hotkey = config.hotkey || 'Win+Alt+H'
+  // Convert hotkey string to Electron format (e.g., "Win+Alt+H" -> "Super+Alt+H")
+  const electronHotkey = hotkey.replace('Win', 'Super')
+  try {
+    globalShortcut.register(electronHotkey, () => toggleRecording())
+  } catch (e) {
+    console.warn('Failed to register global shortcut', e)
+  }
+}
+
+function registerNewHotkey(hotkey: string) {
+  // Unregister all shortcuts first
+  globalShortcut.unregisterAll()
+  // Register new hotkey
+  const electronHotkey = hotkey.replace('Win', 'Super')
+  try {
+    globalShortcut.register(electronHotkey, () => toggleRecording())
+  } catch (e) {
+    console.warn('Failed to register new hotkey', e)
+    // Re-register default if failed
+    registerGlobalShortcut()
+  }
 }
 
 function setupIPC() {
@@ -597,6 +620,14 @@ function setupIPC() {
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.on('register-hotkey', (_event, hotkey: string) => {
+    try {
+      registerNewHotkey(hotkey)
+    } catch (err: any) {
+      console.error('Failed to register hotkey:', err)
     }
   })
 

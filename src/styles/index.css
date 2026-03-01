@@ -750,6 +750,79 @@ body {
   transform: translateX(20px);
 }
 
+/* Hotkey Capture */
+.hotkey-capture {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hotkey-display-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.current-hotkey {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.current-hotkey kbd {
+  background: var(--bg-input);
+  border: 1px solid var(--border-section);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-light);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.current-hotkey span {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.hotkey-recording {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-xs);
+}
+
+.recording-indicator {
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.hotkey-recording span {
+  flex: 1;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 /* Input */
 .settings-input {
   background: var(--bg-input);
