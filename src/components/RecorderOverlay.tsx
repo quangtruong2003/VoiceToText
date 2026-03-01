@@ -11,6 +11,33 @@ const LANGUAGES = [
 
 type AppState = 'idle' | 'recording' | 'processing' | 'result' | 'settings'
 
+// Toast notification component
+function Toast({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 4000)
+        return () => clearTimeout(timer)
+    }, [onClose])
+
+    return (
+        <div className={`toast toast-${type}`}>
+            <span className="toast-icon">
+                {type === 'success' ? (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                ) : (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                )}
+            </span>
+            <span className="toast-message">{message}</span>
+        </div>
+    )
+}
+
 export function RecorderOverlay() {
     const { isRecording, duration, startRecording, stopRecording } = useAudioRecorder()
 
@@ -21,8 +48,15 @@ export function RecorderOverlay() {
     const [error, setError] = useState<string | null>(null)
     const [apiKey, setApiKey] = useState('')
     const [apiKeyInput, setApiKeyInput] = useState('')
+    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
+    // Preserve recording data during API errors
+    const [preservedBlob, setPreservedBlob] = useState<Blob | null>(null)
 
     const [isValidating, setIsValidating] = useState(false)
+
+    const showToast = useCallback((message: string, type: 'success' | 'error') => {
+        setToast({ message, type })
+    }, [])
 
     const handleStartRecording = useCallback(async () => {
         try {
@@ -31,19 +65,21 @@ export function RecorderOverlay() {
             setAppState('recording')
             await startRecording()
         } catch {
-            setError('Không thể truy cập microphone')
+            showToast('Không thể truy cập microphone', 'error')
             setAppState('idle')
         }
-    }, [startRecording])
+    }, [startRecording, showToast])
 
     const handleStopAndTranscribe = useCallback(async () => {
         const blob = await stopRecording()
         if (!blob || blob.size < 1000) {
-            setError('Không có âm thanh được ghi')
+            showToast('Không có âm thanh được ghi', 'error')
             setAppState('idle')
             return
         }
 
+        // Preserve the recording blob for retry
+        setPreservedBlob(blob)
         setAppState('processing')
 
         try {
@@ -52,26 +88,61 @@ export function RecorderOverlay() {
 
             if (result.success && result.text) {
                 setTranscript(result.text)
+                setPreservedBlob(null) // Clear preserved blob after success
                 setAppState('result')
             } else {
                 if (result.error === 'NO_API_KEY') {
-                    setError('Chưa cấu hình API Key')
+                    showToast('Chưa cấu hình API Key', 'error')
                     setAppState('settings')
                     return
                 }
                 if (result.error === 'INVALID_API_KEY') {
-                    setError('API Key không hợp lệ')
+                    showToast('API Key không hợp lệ', 'error')
                     setAppState('settings')
                     return
                 }
-                setError(result.error || 'Lỗi không xác định')
+                // Show error in toast, preserve recording data for retry
+                showToast(result.error || 'Lỗi xử lý', 'error')
                 setAppState('idle')
             }
         } catch (err) {
-            setError('Lỗi kết nối tới API')
+            showToast('Lỗi kết nối tới API', 'error')
             setAppState('idle')
         }
-    }, [stopRecording, language])
+    }, [stopRecording, language, showToast])
+
+    // Retry transcription with preserved recording data
+    const handleRetryTranscribe = useCallback(async () => {
+        if (!preservedBlob) return
+
+        setAppState('processing')
+        try {
+            const arrayBuffer = await preservedBlob.arrayBuffer()
+            const result = await window.electronAPI.transcribeAudio(arrayBuffer, language)
+
+            if (result.success && result.text) {
+                setTranscript(result.text)
+                setPreservedBlob(null)
+                setAppState('result')
+            } else {
+                if (result.error === 'NO_API_KEY') {
+                    showToast('Chưa cấu hình API Key', 'error')
+                    setAppState('settings')
+                    return
+                }
+                if (result.error === 'INVALID_API_KEY') {
+                    showToast('API Key không hợp lệ', 'error')
+                    setAppState('settings')
+                    return
+                }
+                showToast(result.error || 'Lỗi xử lý', 'error')
+                setAppState('idle')
+            }
+        } catch (err) {
+            showToast('Lỗi kết nối tới API', 'error')
+            setAppState('idle')
+        }
+    }, [preservedBlob, language, showToast])
 
     useEffect(() => {
         window.electronAPI.getConfig().then((config) => {
@@ -135,6 +206,7 @@ export function RecorderOverlay() {
         setAppState('idle')
         setTranscript('')
         setError(null)
+        setPreservedBlob(null)
         window.electronAPI.cancelRecording()
     }
 
@@ -150,12 +222,13 @@ export function RecorderOverlay() {
             if (result.valid) {
                 await window.electronAPI.saveConfig({ apiKey: apiKeyInput.trim(), language })
                 setApiKey(apiKeyInput.trim())
+                showToast('API Key đã được lưu!', 'success')
                 setAppState('idle')
             } else {
-                setError(`Lỗi: ${result.error || 'N/A'}`)
+                showToast(`Lỗi: ${result.error || 'Không xác định'}`, 'error')
             }
         } catch (err: any) {
-            setError(`Lỗi kết nối: ${err.message || ''}`)
+            showToast(`Lỗi kết nối: ${err.message || ''}`, 'error')
         } finally {
             setIsValidating(false)
         }
@@ -171,6 +244,14 @@ export function RecorderOverlay() {
 
     return (
         <div className="overlay-container">
+            {/* Toast notification - positioned at top to not block close button */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
             <div className="overlay-card">
                 <div className="overlay-header">
                     <div className="header-left">
@@ -222,9 +303,6 @@ export function RecorderOverlay() {
                                 Lấy API key tại{' '}
                                 <span className="link">aistudio.google.com/app/apikey</span>
                             </p>
-                            {error && appState === 'settings' && (
-                                <p className="error-text" style={{ marginTop: 0 }}>{error}</p>
-                            )}
                             <button
                                 className="btn btn-confirm btn-full"
                                 onClick={handleSaveApiKey}
@@ -260,13 +338,20 @@ export function RecorderOverlay() {
                     )}
 
                     {appState === 'idle' && (
-                        <p className="placeholder-text">
-                            {error || (apiKey ? 'Nhấn Win+Alt+H để bắt đầu' : 'Cần cấu hình API Key')}
-                        </p>
-                    )}
-
-                    {error && appState !== 'idle' && appState !== 'settings' && (
-                        <p className="error-text">{error}</p>
+                        <div className="idle-state">
+                            {preservedBlob ? (
+                                <div className="retry-prompt">
+                                    <p className="placeholder-text">Có bản ghi âm chưa xử lý</p>
+                                    <button className="btn btn-confirm" onClick={handleRetryTranscribe}>
+                                        Thử lại
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="placeholder-text">
+                                    {apiKey ? 'Nhấn Win+Alt+H để bắt đầu' : 'Cần cấu hình API Key'}
+                                </p>
+                            )}
+                        </div>
                     )}
                 </div>
 

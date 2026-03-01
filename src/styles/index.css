@@ -49,6 +49,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+/* Toast positioning in mini-overlay - top center to avoid blocking close button */
+.mini-overlay .toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
 }
 
 .mini-overlay-inner {
@@ -77,6 +87,39 @@ body {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* ========== LARGER OVERLAY ========== */
+.overlay-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Toast positioning in overlay container - top center to avoid blocking close button */
+.overlay-container .toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
+
+/* Retry prompt in idle state */
+.retry-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.retry-prompt .placeholder-text {
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .mic-icon {
@@ -208,6 +251,25 @@ body {
   color: var(--danger);
 }
 
+/* Mini Retry Button */
+.mini-retry-btn {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+  color: var(--accent-light);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.mini-retry-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
 /* ========== SETTINGS WINDOW ========== */
 .settings-container {
   width: 100vw;
@@ -217,6 +279,16 @@ body {
   justify-content: center;
   -webkit-app-region: drag;
   overflow: hidden;
+  position: relative;
+}
+
+/* Toast positioning in settings container - top center */
+.settings-container .toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
 }
 
 .settings-card {
