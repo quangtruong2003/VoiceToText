@@ -1,0 +1,22 @@
+appId: com.voicetotext.app
+productName: Voice to Text
+directories:
+  output: release
+win:
+  target:
+    - nsis
+  icon: public/icon.png
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - node_modules/@nut-tree-fork/**/*
+  - public/**/*
+extraResources:
+  - from: node_modules/@nut-tree-fork
+    to: node_modules/@nut-tree-fork
+  - from: public/icon.png
+    to: icon.png

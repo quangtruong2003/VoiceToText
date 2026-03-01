@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "isolatedModules": true,
+        "moduleDetection": "force",
+        "composite": true,
+        "skipLibCheck": true,
+        "declaration": true,
+        "emitDeclarationOnly": true
+    },
+    "include": [
+        "vite.config.ts",
+        "electron"
+    ]
+}
