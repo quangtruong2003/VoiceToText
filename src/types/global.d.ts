@@ -149,6 +149,9 @@ interface ElectronAPI {
     caching?: boolean
     asyncProcessing?: boolean
   }) => Promise<{ success: boolean }>
+  // History APIs
+  setHistoryPinned: (pinned: boolean) => Promise<void>
+  closeHistory: () => void
 }
 
 declare global {
