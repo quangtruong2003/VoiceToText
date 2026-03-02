@@ -6,10 +6,10 @@ directories:
 compression: maximum
 win:
   target:
-    - nsis-web
+    - nsis
   icon: public/icon.png
 publish: null
-nsisWeb:
+nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
