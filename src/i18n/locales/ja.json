@@ -1,0 +1,146 @@
+{
+  "app": { "name": "Voice to Text" },
+  "common": {
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "retry": "再試行",
+    "checking": "確認中...",
+    "checkNow": "今すぐ確認"
+  },
+  "languages": {
+    "vi": "ベトナム語",
+    "en": "英語",
+    "ja": "日本語",
+    "ko": "韓国語",
+    "zh": "中国語"
+  },
+  "settings": {
+    "title": "アプリ設定",
+    "sections": {
+      "general": "一般",
+      "microphone": "マイク",
+      "api": "API",
+      "formatting": "整形",
+      "performance": "パフォーマンス",
+      "about": "情報"
+    },
+    "general": {
+      "defaultLanguage": "既定の言語",
+      "hotkey": "録音ショートカット",
+      "changeHotkey": "ショートカット変更",
+      "pressNewHotkey": "新しいショートカットを押してください...",
+      "hotkeyHint": "新しいキー組み合わせ（2キー以上）",
+      "needAtLeast2Keys": "2キー以上が必要です（例: Ctrl+Space）",
+      "startWithWindows": "Windows起動時に開始",
+      "startWithWindowsHint": "ログイン時に自動起動",
+      "languageSaved": "言語を保存しました！"
+    },
+    "microphone": {
+      "device": "マイクデバイス",
+      "deviceHint": "録音に使うマイクを選択",
+      "searching": "デバイス検索中...",
+      "notFound": "マイクが見つかりません",
+      "refresh": "再試行",
+      "selected": "マイクを選択しました！"
+    },
+    "api": {
+      "title": "API接続",
+      "provider": "プロバイダー",
+      "endpoint": "エンドポイント",
+      "customEndpoint": "カスタムエンドポイント",
+      "endpointPlaceholderDefault": "空=既定",
+      "endpointPlaceholderCustom": "https://your-proxy.com",
+      "apiKey": "APIキー",
+      "envKeyInUse": ".env のキーを使用中",
+      "show": "表示",
+      "hide": "非表示",
+      "saveAndVerify": "保存して確認",
+      "verified": "確認済み",
+      "getKeyAt": "キー取得:",
+      "customPrompt": "カスタムプロンプト",
+      "optional": "任意",
+      "promptPlaceholder": "例: 文頭を大文字に。句読点を追加...",
+      "promptHint": "テキスト整形の追加指示。",
+      "promptSaved": "プロンプトを保存しました！"
+    },
+    "formatting": {
+      "title": "テキスト整形",
+      "autoCapitalize": "文頭を大文字に",
+      "addPeriod": "文末に句点を追加",
+      "removeFillers": "フィラーを削除（えーと等）",
+      "numberFormat": "数値表記",
+      "keep": "そのまま",
+      "toDigits": "数字に変換（1, 2, 3）",
+      "saved": "設定を保存しました！"
+    },
+    "connectionStatus": {
+      "unknown": "未確認",
+      "connected": "接続済み",
+      "error": "接続エラー"
+    },
+    "toast": {
+      "apiKeySaved": "APIキーを保存しました！",
+      "apiKeyInvalid": "APIキーが無効です",
+      "connectionError": "接続エラー",
+      "updateAvailable": "更新があります！",
+      "upToDate": "最新バージョンです",
+      "updateCheckError": "更新確認に失敗しました",
+      "hotkeySaved": "ショートカット保存: {{hotkey}}"
+    },
+    "about": {
+      "version": "バージョン {{version}}",
+      "desc": "AIで音声をテキスト化するディクテーションアプリです。",
+      "features": "機能",
+      "featureList": [
+        "複数言語対応",
+        "AIによる言語処理",
+        "ショートカットのカスタマイズ",
+        "Windows起動時に自動開始"
+      ],
+      "developer": "開発者",
+      "autoUpdate": "起動時に更新確認",
+      "autoUpdateHint": "起動時に自動で新しい版を確認",
+      "lastCheck": "最終確認: {{time}}",
+      "updateAvailableInline": "更新があります！"
+    },
+    "footer": {
+      "toStartRecording": "で録音を開始"
+    }
+  },
+  "overlay": {
+    "ready": "準備完了",
+    "processing": "処理中...",
+    "microphoneAccessError": "マイクにアクセスできません",
+    "noAudioDetected": "音声が検出されません",
+    "transcriptionError": "文字起こしエラー",
+    "apiConnectionError": "API接続エラー",
+    "cancel": "キャンセル",
+    "retry": "再試行"
+  },
+  "history": {
+    "title": "履歴",
+    "recordsCount": "{{count}} 件",
+    "searchPlaceholder": "検索...",
+    "searchNoResult": "結果なし",
+    "empty": "履歴がありません",
+    "clearAll": "すべて削除",
+    "confirmClearAll": "履歴をすべて削除しますか？",
+    "deleted": "削除しました",
+    "cleared": "すべて削除しました",
+    "selectRecord": "記録を選択",
+    "selectRecordDesc": "一覧から選択して詳細を表示",
+    "stats": {
+      "totalRecords": "総件数",
+      "totalWords": "総単語数",
+      "avgWords": "平均単語数",
+      "today": "今日"
+    },
+    "detail": {
+      "copy": "コピー",
+      "delete": "削除",
+      "editedNotice": "自動整形（大文字/句読点）されました"
+    }
+  }
+}
+

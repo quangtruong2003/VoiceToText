@@ -1,0 +1,146 @@
+{
+  "app": { "name": "Voice to Text" },
+  "common": {
+    "close": "닫기",
+    "cancel": "취소",
+    "save": "저장",
+    "retry": "재시도",
+    "checking": "확인 중...",
+    "checkNow": "지금 확인"
+  },
+  "languages": {
+    "vi": "베트남어",
+    "en": "영어",
+    "ja": "일본어",
+    "ko": "한국어",
+    "zh": "중국어"
+  },
+  "settings": {
+    "title": "앱 설정",
+    "sections": {
+      "general": "일반",
+      "microphone": "마이크",
+      "api": "API",
+      "formatting": "서식",
+      "performance": "성능",
+      "about": "정보"
+    },
+    "general": {
+      "defaultLanguage": "기본 언어",
+      "hotkey": "녹음 단축키",
+      "changeHotkey": "단축키 변경",
+      "pressNewHotkey": "새 단축키를 누르세요...",
+      "hotkeyHint": "새 키 조합(최소 2개 키)",
+      "needAtLeast2Keys": "최소 2개 키가 필요합니다 (예: Ctrl+Space)",
+      "startWithWindows": "Windows 시작 시 실행",
+      "startWithWindowsHint": "로그인 시 자동 실행",
+      "languageSaved": "언어를 저장했습니다!"
+    },
+    "microphone": {
+      "device": "마이크 장치",
+      "deviceHint": "녹음할 마이크 선택",
+      "searching": "장치 찾는 중...",
+      "notFound": "마이크를 찾을 수 없습니다",
+      "refresh": "다시 시도",
+      "selected": "마이크를 선택했습니다!"
+    },
+    "api": {
+      "title": "API 연결",
+      "provider": "공급자",
+      "endpoint": "엔드포인트",
+      "customEndpoint": "커스텀 엔드포인트",
+      "endpointPlaceholderDefault": "비우면 기본값",
+      "endpointPlaceholderCustom": "https://your-proxy.com",
+      "apiKey": "API 키",
+      "envKeyInUse": ".env 키 사용 중",
+      "show": "표시",
+      "hide": "숨김",
+      "saveAndVerify": "저장 및 확인",
+      "verified": "확인됨",
+      "getKeyAt": "키 받기:",
+      "customPrompt": "커스텀 프롬프트",
+      "optional": "선택 사항",
+      "promptPlaceholder": "예: 문장 첫 글자 대문자. 구두점 추가...",
+      "promptHint": "텍스트 서식화를 위한 추가 지시.",
+      "promptSaved": "프롬프트를 저장했습니다!"
+    },
+    "formatting": {
+      "title": "텍스트 서식",
+      "autoCapitalize": "문장 첫 글자 대문자",
+      "addPeriod": "문장 끝에 마침표 추가",
+      "removeFillers": "군더더기 단어 제거(음, 어...)",
+      "numberFormat": "숫자 표기",
+      "keep": "그대로",
+      "toDigits": "숫자로 변환 (1, 2, 3)",
+      "saved": "설정을 저장했습니다!"
+    },
+    "connectionStatus": {
+      "unknown": "미확인",
+      "connected": "연결됨",
+      "error": "연결 오류"
+    },
+    "toast": {
+      "apiKeySaved": "API 키를 저장했습니다!",
+      "apiKeyInvalid": "API 키가 유효하지 않습니다",
+      "connectionError": "연결 오류",
+      "updateAvailable": "업데이트가 있습니다!",
+      "upToDate": "최신 버전입니다",
+      "updateCheckError": "업데이트 확인 실패",
+      "hotkeySaved": "단축키 저장: {{hotkey}}"
+    },
+    "about": {
+      "version": "버전 {{version}}",
+      "desc": "AI 기반 음성 받아쓰기 앱입니다. 음성을 빠르고 정확하게 텍스트로 변환합니다.",
+      "features": "기능",
+      "featureList": [
+        "다국어 지원",
+        "AI 언어 처리",
+        "단축키 커스터마이즈",
+        "Windows 시작 시 자동 실행"
+      ],
+      "developer": "개발자",
+      "autoUpdate": "시작 시 업데이트 확인",
+      "autoUpdateHint": "시작할 때 자동으로 새 버전 확인",
+      "lastCheck": "마지막 확인: {{time}}",
+      "updateAvailableInline": "업데이트가 있습니다!"
+    },
+    "footer": {
+      "toStartRecording": "로 녹음 시작"
+    }
+  },
+  "overlay": {
+    "ready": "준비됨",
+    "processing": "처리 중...",
+    "microphoneAccessError": "마이크 접근 오류",
+    "noAudioDetected": "오디오가 감지되지 않았습니다",
+    "transcriptionError": "변환 오류",
+    "apiConnectionError": "API 연결 오류",
+    "cancel": "취소",
+    "retry": "재시도"
+  },
+  "history": {
+    "title": "기록",
+    "recordsCount": "{{count}}개",
+    "searchPlaceholder": "검색...",
+    "searchNoResult": "결과 없음",
+    "empty": "기록이 없습니다",
+    "clearAll": "모두 삭제",
+    "confirmClearAll": "모든 기록을 삭제할까요?",
+    "deleted": "삭제했습니다",
+    "cleared": "모두 삭제했습니다",
+    "selectRecord": "기록 선택",
+    "selectRecordDesc": "목록에서 선택해 상세를 확인하세요",
+    "stats": {
+      "totalRecords": "총 기록",
+      "totalWords": "총 단어",
+      "avgWords": "평균 단어/기록",
+      "today": "오늘"
+    },
+    "detail": {
+      "copy": "복사",
+      "delete": "삭제",
+      "editedNotice": "자동 서식(대문자/구두점)이 적용되었습니다"
+    }
+  }
+}
+

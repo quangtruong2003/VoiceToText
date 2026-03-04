@@ -37,6 +37,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('injection-complete', listener)
   },
 
+  onConfigUpdated: (callback: (partial: any) => void) => {
+    const listener = (_event: any, partial: any) => callback(partial)
+    ipcRenderer.on('config-updated', listener)
+    return () => ipcRenderer.removeListener('config-updated', listener)
+  },
+
   getConfig: () => {
     return ipcRenderer.invoke('get-config')
   },

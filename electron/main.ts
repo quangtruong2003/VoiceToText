@@ -53,7 +53,13 @@ interface AppConfig {
     removeFillerWords: boolean
     numberFormatting: 'none' | 'digits' | 'words'
   }
-
+  // User Window Preferences
+  historyWindowBounds?: {
+    width: number
+    height: number
+    x?: number
+    y?: number
+  }
 }
 
 // Default punctuation settings
@@ -178,9 +184,21 @@ function saveConfig(config: Partial<AppConfig>) {
   const merged = { ...existing, ...config }
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2))
 
+  // Broadcast config changes to all windows
+  broadcastConfigUpdate(config)
+
   // Handle auto-start setting changes
   if (config.startWithWindows !== undefined) {
     setAutoStart(config.startWithWindows)
+  }
+}
+
+function broadcastConfigUpdate(partial: Partial<AppConfig>) {
+  const windows = [overlayWindow, settingsWindow, historyWindow]
+  for (const win of windows) {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('config-updated', partial)
+    }
   }
 }
 
@@ -334,14 +352,37 @@ function createHistoryWindow() {
   const primaryDisplay = screen.getPrimaryDisplay()
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize
 
+  const config = loadConfig()
+  const bounds = config.historyWindowBounds
+
+  // Default dimensions
+  let width = 620
+  let height = 580
+  let x = Math.round((screenWidth - width) / 2)
+  let y = Math.round((screenHeight - height) / 2)
+
+  // Use saved bounds if available and within screen bounds
+  if (bounds) {
+    width = bounds.width || width
+    height = bounds.height || height
+    
+    // Basic bounds checking to ensure window isn't lost off-screen
+    if (bounds.x !== undefined && bounds.y !== undefined) {
+      if (bounds.x >= 0 && bounds.x + width <= screenWidth) x = bounds.x
+      if (bounds.y >= 0 && bounds.y + height <= screenHeight) y = bounds.y
+    }
+  }
+
   historyWindow = new BrowserWindow({
-    width: 480,
-    height: 600,
-    x: Math.round((screenWidth - 480) / 2),
-    y: Math.round((screenHeight - 600) / 2),
+    width,
+    height,
+    x,
+    y,
+    minWidth: 620,
+    minHeight: 500,
     frame: false,
     transparent: true,
-    resizable: false,
+    resizable: true,
     show: false,
     alwaysOnTop: false,
     icon: createTaskbarIcon(),
@@ -353,10 +394,17 @@ function createHistoryWindow() {
     },
   })
 
-  // Handle close - hide instead of closing
+  // Handle close - save bounds and hide instead of closing
   historyWindow.on('close', (event) => {
     if (!app.isQuitting) {
       event.preventDefault()
+      
+      // Save window bounds before hiding
+      if (historyWindow && !historyWindow.isMaximized() && !historyWindow.isFullScreen()) {
+        const currentBounds = historyWindow.getBounds()
+        saveConfig({ historyWindowBounds: currentBounds })
+      }
+      
       historyWindow?.hide()
     }
   })

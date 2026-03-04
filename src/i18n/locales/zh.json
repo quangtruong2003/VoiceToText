@@ -1,0 +1,146 @@
+{
+  "app": { "name": "Voice to Text" },
+  "common": {
+    "close": "关闭",
+    "cancel": "取消",
+    "save": "保存",
+    "retry": "重试",
+    "checking": "检查中...",
+    "checkNow": "立即检查"
+  },
+  "languages": {
+    "vi": "越南语",
+    "en": "英语",
+    "ja": "日语",
+    "ko": "韩语",
+    "zh": "中文"
+  },
+  "settings": {
+    "title": "应用设置",
+    "sections": {
+      "general": "通用",
+      "microphone": "麦克风",
+      "api": "API",
+      "formatting": "格式",
+      "performance": "性能",
+      "about": "关于"
+    },
+    "general": {
+      "defaultLanguage": "默认语言",
+      "hotkey": "录音快捷键",
+      "changeHotkey": "更改快捷键",
+      "pressNewHotkey": "按下新的快捷键...",
+      "hotkeyHint": "输入新的组合键（至少 2 个键）",
+      "needAtLeast2Keys": "至少需要 2 个键（例如：Ctrl+Space）",
+      "startWithWindows": "随 Windows 启动",
+      "startWithWindowsHint": "登录时自动启动",
+      "languageSaved": "语言已保存！"
+    },
+    "microphone": {
+      "device": "麦克风设备",
+      "deviceHint": "选择录音麦克风",
+      "searching": "正在查找设备...",
+      "notFound": "未找到麦克风",
+      "refresh": "重试",
+      "selected": "已选择麦克风！"
+    },
+    "api": {
+      "title": "API 连接",
+      "provider": "提供方",
+      "endpoint": "端点",
+      "customEndpoint": "自定义端点",
+      "endpointPlaceholderDefault": "留空=默认",
+      "endpointPlaceholderCustom": "https://your-proxy.com",
+      "apiKey": "API Key",
+      "envKeyInUse": "正在使用 .env 中的 key",
+      "show": "显示",
+      "hide": "隐藏",
+      "saveAndVerify": "保存并验证",
+      "verified": "已验证",
+      "getKeyAt": "获取 key：",
+      "customPrompt": "自定义 Prompt",
+      "optional": "可选",
+      "promptPlaceholder": "例如：首字母大写。自动加标点...",
+      "promptHint": "为 AI 提供额外文本处理指令。",
+      "promptSaved": "Prompt 已保存！"
+    },
+    "formatting": {
+      "title": "文本格式",
+      "autoCapitalize": "句首大写",
+      "addPeriod": "句末加句号",
+      "removeFillers": "移除口头禅（嗯、呃等）",
+      "numberFormat": "数字格式",
+      "keep": "保持原样",
+      "toDigits": "转换为数字 (1, 2, 3)",
+      "saved": "设置已保存！"
+    },
+    "connectionStatus": {
+      "unknown": "未检查",
+      "connected": "已连接",
+      "error": "连接错误"
+    },
+    "toast": {
+      "apiKeySaved": "API Key 已保存！",
+      "apiKeyInvalid": "API Key 无效",
+      "connectionError": "连接错误",
+      "updateAvailable": "有新版本！",
+      "upToDate": "已是最新版本",
+      "updateCheckError": "检查更新失败",
+      "hotkeySaved": "快捷键已保存：{{hotkey}}"
+    },
+    "about": {
+      "version": "版本 {{version}}",
+      "desc": "AI 驱动的语音转文字应用。快速、准确地把语音转换成文本。",
+      "features": "功能",
+      "featureList": [
+        "多语言支持",
+        "AI 语言处理",
+        "自定义快捷键",
+        "随 Windows 启动"
+      ],
+      "developer": "开发者",
+      "autoUpdate": "启动时检查更新",
+      "autoUpdateHint": "每次启动自动检查新版本",
+      "lastCheck": "上次检查：{{time}}",
+      "updateAvailableInline": "有新版本！"
+    },
+    "footer": {
+      "toStartRecording": "开始录音"
+    }
+  },
+  "overlay": {
+    "ready": "就绪",
+    "processing": "处理中...",
+    "microphoneAccessError": "麦克风访问错误",
+    "noAudioDetected": "未检测到音频",
+    "transcriptionError": "转写错误",
+    "apiConnectionError": "API 连接错误",
+    "cancel": "取消",
+    "retry": "重试"
+  },
+  "history": {
+    "title": "历史",
+    "recordsCount": "{{count}} 条",
+    "searchPlaceholder": "搜索...",
+    "searchNoResult": "无结果",
+    "empty": "暂无记录",
+    "clearAll": "清空",
+    "confirmClearAll": "确定清空所有历史记录吗？",
+    "deleted": "已删除记录",
+    "cleared": "已清空所有记录",
+    "selectRecord": "选择一条记录",
+    "selectRecordDesc": "从列表中选择以查看详情",
+    "stats": {
+      "totalRecords": "总记录",
+      "totalWords": "总词数",
+      "avgWords": "平均词数/记录",
+      "today": "今天"
+    },
+    "detail": {
+      "copy": "复制文本",
+      "delete": "删除记录",
+      "editedNotice": "文本已自动格式化（大小写/标点）"
+    }
+  }
+}
+

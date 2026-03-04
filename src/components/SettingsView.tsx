@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { PerformanceDashboard } from './PerformanceDashboard'
 import { HistoryView } from './HistoryView'
 import { useAudioDevices } from '../hooks/useAudioDevices'
+import { useI18n, AppLanguage } from '../i18n'
 
 const LANGUAGES = [
     { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
@@ -13,88 +14,72 @@ const LANGUAGES = [
 
 const GITHUB_REPO = 'quangtruong2003/voice-to-text'
 
-const API_PROVIDERS = [
-    {
-        id: 'google',
-        label: 'Google',
-        desc: 'Gemini API chính thức',
-    },
-    {
-        id: 'antigravity',
-        label: 'Antigravity',
-        desc: 'Proxy server',
-    },
-    {
-        id: 'custom',
-        label: 'Custom',
-        desc: 'Endpoint tùy chỉnh',
-    },
-]
-
 type SidebarSection = 'general' | 'microphone' | 'api' | 'formatting' | 'performance' | 'about'
 
-const SIDEBAR_ITEMS: { id: SidebarSection; label: string; icon: JSX.Element }[] = [
-    {
-        id: 'general',
-        label: 'Chung',
-        icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-        ),
-    },
-    {
-        id: 'microphone',
-        label: 'Microphone',
-        icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-            </svg>
-        ),
-    },
-    {
-        id: 'api',
-        label: 'Kết nối API',
-        icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12h8" /><path d="M4 18V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M18 12h2" /><path d="M18 6h2" /><path d="M18 18h2" />
-            </svg>
-        ),
-    },
-    {
-        id: 'formatting',
-        label: 'Định dạng',
-        icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 7V4h16v3" />
-                <path d="M9 20h6" />
-                <path d="M12 4v16" />
-            </svg>
-        ),
-    },
-    {
-        id: 'performance',
-        label: 'Hiệu năng',
-        icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-        ),
-    },
-    {
-        id: 'about',
-        label: 'Giới thiệu',
-        icon: (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
-            </svg>
-        ),
-    },
-]
+function getSidebarItems(t: (key: string) => string): { id: SidebarSection; label: string; icon: JSX.Element }[] {
+    return [
+        {
+            id: 'general',
+            label: t('settings.sections.general'),
+            icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            ),
+        },
+        {
+            id: 'microphone',
+            label: t('settings.sections.microphone'),
+            icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+            ),
+        },
+        {
+            id: 'api',
+            label: t('settings.sections.api'),
+            icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12h8" /><path d="M4 18V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M18 12h2" /><path d="M18 6h2" /><path d="M18 18h2" />
+                </svg>
+            ),
+        },
+        {
+            id: 'formatting',
+            label: t('settings.sections.formatting'),
+            icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 7V4h16v3" />
+                    <path d="M9 20h6" />
+                    <path d="M12 4v16" />
+                </svg>
+            ),
+        },
+        {
+            id: 'performance',
+            label: t('settings.sections.performance'),
+            icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+            ),
+        },
+        {
+            id: 'about',
+            label: t('settings.sections.about'),
+            icon: (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+                </svg>
+            ),
+        },
+    ]
+}
 
 function ConnectionStatus({
     isValid,
@@ -105,11 +90,12 @@ function ConnectionStatus({
     isChecking: boolean
     error: string | null
 }) {
+    const { t } = useI18n()
     if (isChecking) {
         return (
             <div className="connection-status checking">
                 <span className="status-spinner"></span>
-                <span>Đang kiểm tra...</span>
+                <span>{t('common.checking')}</span>
             </div>
         )
     }
@@ -118,7 +104,7 @@ function ConnectionStatus({
         return (
             <div className="connection-status unknown">
                 <span className="status-dot"></span>
-                <span>Chưa kiểm tra</span>
+                <span>{t('settings.connectionStatus.unknown')}</span>
             </div>
         )
     }
@@ -126,7 +112,70 @@ function ConnectionStatus({
     return (
         <div className={`connection-status ${isValid ? 'valid' : 'invalid'}`}>
             <span className={`status-dot ${isValid ? 'valid' : 'invalid'}`}></span>
-            <span>{isValid ? 'Đã kết nối' : 'Lỗi kết nối'}</span>
+            <span>{isValid ? t('settings.connectionStatus.connected') : t('settings.connectionStatus.error')}</span>
+        </div>
+    )
+}
+
+interface LanguageDropdownProps {
+    value: string
+    onChange: (lang: string) => void
+    languages: { code: string; name: string; flag?: string }[]
+    showFlag?: boolean
+}
+
+function LanguageDropdown({ value, onChange, languages, showFlag = true }: LanguageDropdownProps) {
+    const [isOpen, setIsOpen] = useState(false)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+    const { t } = useI18n()
+
+    const selectedLang = languages.find(l => l.code === value) || languages[0]
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    return (
+        <div className="language-dropdown" ref={dropdownRef}>
+            <button
+                className={`language-dropdown-trigger ${isOpen ? 'open' : ''}`}
+                onClick={() => setIsOpen(!isOpen)}
+                type="button"
+            >
+                <span className="language-dropdown-label">
+                    {showFlag && selectedLang.flag && (
+                        <span className="lang-flag">{selectedLang.flag}</span>
+                    )}
+                    <span className="language-dropdown-label-text">{selectedLang.name}</span>
+                </span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </button>
+            {isOpen && (
+                <div className="language-dropdown-menu">
+                    {languages.map((lang) => (
+                        <button
+                            key={lang.code}
+                            className={`language-dropdown-item ${value === lang.code ? 'active' : ''}`}
+                            onClick={() => {
+                                onChange(lang.code)
+                                setIsOpen(false)
+                            }}
+                            type="button"
+                        >
+                            <span className="lang-flag">{lang.flag}</span>
+                            <span className="lang-name">{lang.name}</span>
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     )
 }
@@ -158,17 +207,17 @@ function Toast({ message, type, onClose }: { message: string, type: 'success' | 
 }
 
 export function SettingsView() {
+    const { t, language: i18nLang, setLanguage: setI18nLanguage, dict } = useI18n()
     const [activeSection, setActiveSection] = useState<SidebarSection>('general')
     const [apiKey, setApiKey] = useState('')
     const [apiKeyInput, setApiKeyInput] = useState('')
     const [customPrompt, setCustomPrompt] = useState('')
-    const [language, setLanguage] = useState('vi')
+    const [language, setLanguage] = useState(i18nLang)
     const [hasEnvKey, setHasEnvKey] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const [isValid, setIsValid] = useState<boolean | null>(null)
     const [error, setError] = useState<string | null>(null)
-    const [apiType, setApiType] = useState<'google' | 'antigravity' | 'custom'>('google')
-    const [customEndpoint, setCustomEndpoint] = useState('')
+    const [apiType] = useState<'google' | 'antigravity' | 'custom'>('google')
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
     const [showApiKey, setShowApiKey] = useState(false)
     const [startWithWindows, setStartWithWindows] = useState(false)
@@ -201,11 +250,9 @@ export function SettingsView() {
                 setApiKey(config.apiKey)
                 setApiKeyInput(config.apiKey)
             }
-            if (config.language) setLanguage(config.language)
+            if (config.language) setLanguage(config.language as AppLanguage)
             if (config.customPrompt) setCustomPrompt(config.customPrompt)
             if (config.hasEnvKey) setHasEnvKey(true)
-            if (config.apiType) setApiType(config.apiType)
-            if (config.customEndpoint) setCustomEndpoint(config.customEndpoint)
             if (config.startWithWindows !== undefined) setStartWithWindows(config.startWithWindows)
             if (config.autoUpdate !== undefined) setAutoUpdate(config.autoUpdate)
             if (config.lastUpdateCheck) setLastUpdateCheck(config.lastUpdateCheck)
@@ -225,7 +272,16 @@ export function SettingsView() {
                 })
             }
         })
-    }, [])
+
+        // Listen for config changes from other windows
+        const cleanupConfigUpdate = window.electronAPI.onConfigUpdated((partial) => {
+            if (partial.language) {
+                setLanguage(partial.language as AppLanguage)
+                setI18nLanguage(partial.language as AppLanguage)
+            }
+        })
+        return cleanupConfigUpdate
+    }, [setI18nLanguage])
 
     const handleSaveApiKey = async () => {
         if (!apiKeyInput.trim()) return
@@ -236,22 +292,20 @@ export function SettingsView() {
             if (result.valid) {
                 await window.electronAPI.saveConfig({
                     apiKey: apiKeyInput.trim(),
-                    language,
-                    apiType,
-                    customEndpoint
+                    language
                 })
                 setApiKey(apiKeyInput.trim())
                 setIsValid(true)
-                showToast('Đã lưu API Key!', 'success')
+                showToast(t('settings.toast.apiKeySaved'), 'success')
             } else {
                 setIsValid(false)
-                setError(`API Key không hợp lệ: ${result.error || 'N/A'}`)
-                showToast('API Key không hợp lệ', 'error')
+                setError(`${t('settings.toast.apiKeyInvalid')}: ${result.error || 'N/A'}`)
+                showToast(t('settings.toast.apiKeyInvalid'), 'error')
             }
         } catch (err: any) {
             setIsValid(false)
-            setError(`Lỗi kết nối: ${err.message || ''}`)
-            showToast('Lỗi kết nối', 'error')
+            setError(`${t('settings.toast.connectionError')}: ${err.message || ''}`)
+            showToast(t('settings.toast.connectionError'), 'error')
         } finally {
             setIsValidating(false)
         }
@@ -259,23 +313,24 @@ export function SettingsView() {
 
     const handleSavePrompt = async () => {
         await window.electronAPI.saveConfig({ customPrompt })
-        showToast('Đã lưu Prompt!', 'success')
+        showToast(t('settings.api.promptSaved'), 'success')
     }
 
     const handleLanguageChange = async (newLang: string) => {
-        setLanguage(newLang)
+        setLanguage(newLang as AppLanguage)
+        setI18nLanguage(newLang as AppLanguage)
         await window.electronAPI.saveConfig({ language: newLang })
-        showToast('Đã lưu ngôn ngữ!', 'success')
+        showToast(t('settings.general.languageSaved'), 'success')
     }
 
     const handleStartWithWindowsChange = async (enabled: boolean) => {
         setStartWithWindows(enabled)
         const result = await window.electronAPI.setStartWithWindows(enabled)
         if (result.success) {
-            showToast(enabled ? 'Đã bật khởi động cùng Windows!' : 'Đã tắt khởi động cùng Windows!', 'success')
+            showToast(enabled ? t('settings.general.startWithWindows') : t('settings.general.startWithWindows'), 'success')
         } else {
             setStartWithWindows(!enabled)
-            showToast(`Lỗi: ${result.error || 'Không thể thay đổi cài đặt'}`, 'error')
+            showToast(`Lỗi: ${result.error || ''}`, 'error')
         }
     }
 
@@ -286,27 +341,26 @@ export function SettingsView() {
             const result = await window.electronAPI.checkForUpdate()
             if (result.updateAvailable) {
                 setUpdateAvailable(true)
-                showToast('Có bản cập nhật mới!', 'success')
+                showToast(t('settings.toast.updateAvailable'), 'success')
             } else {
-                showToast('Bạn đang sử dụng phiên bản mới nhất!', 'success')
+                showToast(t('settings.toast.upToDate'), 'success')
             }
             const now = new Date()
             setLastUpdateCheck(now.toLocaleString('vi-VN'))
         } catch (err) {
-            showToast('Lỗi kiểm tra cập nhật', 'error')
+            // Nếu kiểm tra cập nhật thất bại (ví dụ chạy bản dev hoặc không cấu hình auto-update),
+            // chỉ log lỗi để debug, không hiển thị toast lỗi gây khó chịu cho người dùng.
+            console.error('checkForUpdate error', err)
         } finally {
             setIsCheckingUpdate(false)
         }
-    }, [showToast])
+    }, [showToast, t])
 
-    const handleApiTypeChange = async (newType: 'google' | 'antigravity' | 'custom') => {
-        setApiType(newType)
-        await window.electronAPI.saveConfig({ apiType: newType })
-    }
-
-    const handleEndpointBlur = async () => {
-        await window.electronAPI.saveConfig({ customEndpoint })
-    }
+    useEffect(() => {
+        if (activeSection === 'microphone') {
+            reloadAudioDevices()
+        }
+    }, [activeSection, reloadAudioDevices])
 
     const handlePunctuationSettingChange = async (key: keyof typeof punctuationSettings, value: any) => {
         const newSettings = { ...punctuationSettings, [key]: value }
@@ -323,9 +377,6 @@ export function SettingsView() {
     const handleClose = () => {
         window.electronAPI.closeSettings()
     }
-
-    const providerIndex = API_PROVIDERS.findIndex(p => p.id === apiType)
-
     const handleHotkeyCapture = useCallback((e: KeyboardEvent) => {
         if (!isRecordingHotkey) return
 
@@ -352,7 +403,7 @@ export function SettingsView() {
         hotkeyParts.push(finalKey)
 
         if (hotkeyParts.length < 2) {
-            showToast('Cần ít nhất 2 phím (ví dụ: Ctrl+Space)', 'error')
+            showToast(t('settings.general.needAtLeast2Keys'), 'error')
             return
         }
 
@@ -369,8 +420,8 @@ export function SettingsView() {
         window.electronAPI.registerHotkey(hotkeyString)
 
         setIsRecordingHotkey(false)
-        showToast(`Đã lưu phím tắt: ${hotkeyString}`, 'success')
-    }, [isRecordingHotkey, showToast])
+        showToast(t('settings.toast.hotkeySaved', { hotkey: hotkeyString }), 'success')
+    }, [isRecordingHotkey, showToast, t])
 
     useEffect(() => {
         if (isRecordingHotkey) {
@@ -394,26 +445,19 @@ export function SettingsView() {
             case 'general':
                 return (
                     <div className="settings-content-panel">
-                        <h2 className="content-panel-title">Chung</h2>
+                        <h2 className="content-panel-title">{t('settings.sections.general')}</h2>
 
                         <div className="list-grouped-card">
-                            <div className="list-grouped-item">
-                                <div className="list-item-left">
-                                    <span className="list-item-label">Ngôn ngữ mặc định</span>
+                            <div className="list-grouped-item no-border" style={{ alignItems: 'center', gap: 16 }}>
+                                <div className="list-item-left" style={{ flex: '0 0 auto' }}>
+                                    <span className="list-item-label">{t('settings.general.defaultLanguage')}</span>
                                 </div>
-                            </div>
-                            <div className="list-grouped-item no-border">
-                                <div className="language-selector">
-                                    {LANGUAGES.map((lang) => (
-                                        <button
-                                            key={lang.code}
-                                            className={`language-chip ${language === lang.code ? 'active' : ''}`}
-                                            onClick={() => handleLanguageChange(lang.code)}
-                                        >
-                                            <span className="language-flag">{lang.flag}</span>
-                                            <span className="language-name">{lang.name}</span>
-                                        </button>
-                                    ))}
+                                <div style={{ flex: '0 0 230px' }}>
+                                    <LanguageDropdown
+                                        value={language}
+                                        onChange={handleLanguageChange}
+                                        languages={LANGUAGES}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -421,7 +465,7 @@ export function SettingsView() {
                         <div className="list-grouped-card">
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Phím tắt ghi âm</span>
+                                    <span className="list-item-label">{t('settings.general.hotkey')}</span>
                                 </div>
                             </div>
                             <div className="list-grouped-item no-border">
@@ -429,12 +473,12 @@ export function SettingsView() {
                                     {isRecordingHotkey ? (
                                         <div className="hotkey-recording">
                                             <span className="recording-indicator"></span>
-                                            <span>Nhấn phím tắt mới...</span>
+                                            <span>{t('settings.general.pressNewHotkey')}</span>
                                             <button
                                                 className="btn btn-ghost btn-small"
                                                 onClick={() => setIsRecordingHotkey(false)}
                                             >
-                                                Hủy
+                                                {t('common.cancel')}
                                             </button>
                                         </div>
                                     ) : (
@@ -462,22 +506,19 @@ export function SettingsView() {
                                                 className="btn btn-primary btn-small"
                                                 onClick={() => setIsRecordingHotkey(true)}
                                             >
-                                                Đổi phím tắt
+                                                {t('settings.general.changeHotkey')}
                                             </button>
                                         </div>
                                     )}
                                 </div>
-                                <p className="settings-hint">
-                                    Nhấn tổ hợp phím mới (cần ít nhất 2 phím)
-                                </p>
                             </div>
                         </div>
 
                         <div className="list-grouped-card">
                             <div className="list-grouped-item no-border">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Bắt đầu cùng Windows</span>
-                                    <span className="list-item-hint">Tự động khởi động khi đăng nhập</span>
+                                    <span className="list-item-label">{t('settings.general.startWithWindows')}</span>
+                                    <span className="list-item-hint">{t('settings.general.startWithWindowsHint')}</span>
                                 </div>
                                 <button
                                     className={`toggle-switch ${startWithWindows ? 'active' : ''}`}
@@ -495,53 +536,34 @@ export function SettingsView() {
             case 'microphone':
                 return (
                     <div className="settings-content-panel">
-                        <h2 className="content-panel-title">Microphone</h2>
+                        <h2 className="content-panel-title">{t('settings.sections.microphone')}</h2>
 
                         <div className="list-grouped-card">
-                            <div className="list-grouped-item">
-                                <div className="list-item-left">
-                                    <span className="list-item-label">Thiết bị Microphone</span>
-                                    <span className="list-item-hint">Chọn microphone để ghi âm</span>
+                            <div className="list-grouped-item no-border" style={{ alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                                <div className="list-item-left" style={{ flex: '0 0 auto' }}>
+                                    <span className="list-item-label">{t('settings.microphone.device')}</span>
+                                    <span className="list-item-hint">{t('settings.microphone.deviceHint')}</span>
                                 </div>
-                            </div>
-                            <div className="list-grouped-item no-border">
                                 {audioDevicesLoading ? (
-                                    <div className="device-loading">
+                                    <div className="device-loading" style={{ flex: '1 1 220px', minWidth: 0 }}>
                                         <span className="device-spinner"></span>
-                                        <span>Đang tìm thiết bị...</span>
+                                        <span>{t('settings.microphone.searching')}</span>
                                     </div>
                                 ) : audioDevices.length === 0 ? (
-                                    <div className="device-empty">
-                                        <span>Không tìm thấy microphone</span>
-                                        <button className="btn btn-ghost btn-small" onClick={reloadAudioDevices}>
-                                            Thử lại
-                                        </button>
+                                    <div className="device-empty" style={{ flex: '1 1 220px', minWidth: 0 }}>
+                                        <span>{t('settings.microphone.notFound')}</span>
                                     </div>
                                 ) : (
-                                    <div className="device-selector">
-                                        <select
-                                            className="settings-input"
-                                            value={selectedAudioDevice}
-                                            onChange={(e) => handleAudioDeviceChange(e.target.value)}
-                                        >
-                                            {audioDevices.map((device) => (
-                                                <option key={device.deviceId} value={device.deviceId}>
-                                                    {device.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            className="btn btn-ghost btn-small"
-                                            onClick={reloadAudioDevices}
-                                            title="Làm mới danh sách"
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 2v6h-6" />
-                                                <path d="M3 12a9 9 0 0115-6.7L21 8" />
-                                                <path d="M3 22v-6h6" />
-                                                <path d="M21 12a9 9 0 01-15 6.7L3 16" />
-                                            </svg>
-                                        </button>
+                                    <div className="device-selector" style={{ flex: '1 1 260px', minWidth: 0 }}>
+                                        <LanguageDropdown
+                                            value={selectedAudioDevice || audioDevices[0].deviceId}
+                                            onChange={handleAudioDeviceChange}
+                                            languages={audioDevices.map((device) => ({
+                                                code: device.deviceId,
+                                                name: device.label
+                                            }))}
+                                            showFlag={false}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -553,7 +575,7 @@ export function SettingsView() {
                 return (
                     <div className="settings-content-panel">
                         <h2 className="content-panel-title">
-                            Kết nối API
+                            {t('settings.api.title')}
                             <ConnectionStatus
                                 isValid={isValid}
                                 isChecking={isValidating}
@@ -564,58 +586,8 @@ export function SettingsView() {
                         <div className="list-grouped-card">
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Nhà cung cấp</span>
-                                </div>
-                            </div>
-                            <div className="list-grouped-item no-border">
-                                <div className="provider-selector">
-                                    <div
-                                        className="provider-indicator"
-                                        style={{
-                                            transform: `translateX(${providerIndex * 100}%)`,
-                                            width: `${100 / API_PROVIDERS.length}%`
-                                        }}
-                                    />
-                                    {API_PROVIDERS.map((provider) => (
-                                        <button
-                                            key={provider.id}
-                                            className={`provider-option ${apiType === provider.id ? 'active' : ''}`}
-                                            onClick={() => handleApiTypeChange(provider.id as 'google' | 'antigravity' | 'custom')}
-                                            title={provider.desc}
-                                        >
-                                            <span className="provider-label">{provider.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {apiType !== 'google' && (
-                            <div className="list-grouped-card fade-in">
-                                <div className="list-grouped-item no-border">
-                                    <div className="list-item-left" style={{ width: '100%' }}>
-                                        <span className="list-item-label">
-                                            {apiType === 'antigravity' ? 'Endpoint' : 'Custom Endpoint'}
-                                        </span>
-                                        <input
-                                            type="text"
-                                            className="settings-input"
-                                            placeholder={apiType === 'antigravity' ? 'Để trống = mặc định' : 'https://your-proxy.com'}
-                                            value={customEndpoint}
-                                            onChange={(e) => setCustomEndpoint(e.target.value)}
-                                            onBlur={handleEndpointBlur}
-                                            style={{ marginTop: 8 }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="list-grouped-card">
-                            <div className="list-grouped-item">
-                                <div className="list-item-left">
                                     <span className="list-item-label">
-                                        API Key
+                                        {t('settings.api.apiKey')}
                                         {hasEnvKey && <span className="env-badge">.env</span>}
                                     </span>
                                 </div>
@@ -626,7 +598,7 @@ export function SettingsView() {
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                         </svg>
-                                        <span>Đang sử dụng key từ <code>.env</code></span>
+                                        <span>{t('settings.api.envKeyInUse')}</span>
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
@@ -634,7 +606,7 @@ export function SettingsView() {
                                             <input
                                                 type={showApiKey ? 'text' : 'password'}
                                                 className="settings-input"
-                                                placeholder={apiType === 'google' ? 'AIzaSy...' : 'Token...'}
+                                                placeholder="AIzaSy..."
                                                 value={apiKeyInput}
                                                 onChange={(e) => setApiKeyInput(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
@@ -642,7 +614,7 @@ export function SettingsView() {
                                             <button
                                                 className="input-toggle-btn"
                                                 onClick={() => setShowApiKey(!showApiKey)}
-                                                title={showApiKey ? 'Ẩn' : 'Hiện'}
+                                                title={showApiKey ? t('settings.api.hide') : t('settings.api.show')}
                                                 tabIndex={-1}
                                             >
                                                 {showApiKey ? (
@@ -673,11 +645,11 @@ export function SettingsView() {
                                                         <polyline points="9 12 12 15 16 10"></polyline>
                                                     </svg>
                                                 )}
-                                                {isValid ? 'Đã xác minh' : 'Lưu & Xác minh'}
+                                                {isValid ? t('settings.api.verified') : t('settings.api.saveAndVerify')}
                                             </button>
                                         </div>
                                         <p className="settings-hint">
-                                            Lấy key tại{' '}
+                                            {t('settings.api.getKeyAt')}{' '}
                                             <a
                                                 href="#"
                                                 className="link"
@@ -698,8 +670,8 @@ export function SettingsView() {
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
                                     <span className="list-item-label">
-                                        Custom Prompt
-                                        <span className="optional-badge">Tùy chọn</span>
+                                        {t('settings.api.customPrompt')}
+                                        <span className="optional-badge">{t('settings.api.optional')}</span>
                                     </span>
                                 </div>
                             </div>
@@ -707,21 +679,21 @@ export function SettingsView() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
                                     <textarea
                                         className="settings-textarea"
-                                        placeholder="Ví dụ: Viết hoa chữ cái đầu câu. Tự động phân đoạn..."
+                                        placeholder={t('settings.api.promptPlaceholder')}
                                         value={customPrompt}
                                         onChange={(e) => setCustomPrompt(e.target.value)}
                                         rows={3}
                                     />
                                     <div className="textarea-footer">
                                         <p className="settings-hint">
-                                            Hướng dẫn thêm cho AI khi xử lý văn bản.
+                                            {t('settings.api.promptHint')}
                                         </p>
                                         <button
                                             className="btn btn-primary btn-small"
                                             onClick={handleSavePrompt}
                                             disabled={!customPrompt.trim()}
                                         >
-                                            Lưu
+                                            {t('common.save')}
                                         </button>
                                     </div>
                                 </div>
@@ -733,12 +705,12 @@ export function SettingsView() {
             case 'formatting':
                 return (
                     <div className="settings-content-panel">
-                        <h2 className="content-panel-title">Định dạng văn bản</h2>
+                        <h2 className="content-panel-title">{t('settings.formatting.title')}</h2>
 
                         <div className="list-grouped-card">
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Viết hoa đầu câu</span>
+                                    <span className="list-item-label">{t('settings.formatting.autoCapitalize')}</span>
                                 </div>
                                 <button
                                     className={`toggle-switch ${punctuationSettings.autoCapitalize ? 'active' : ''}`}
@@ -752,7 +724,7 @@ export function SettingsView() {
 
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Thêm dấu chấm cuối câu</span>
+                                    <span className="list-item-label">{t('settings.formatting.addPeriod')}</span>
                                 </div>
                                 <button
                                     className={`toggle-switch ${punctuationSettings.addPeriodAtEnd ? 'active' : ''}`}
@@ -766,7 +738,7 @@ export function SettingsView() {
 
                             <div className="list-grouped-item no-border">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Xóa từ thừa (à, ừ, um, uh...)</span>
+                                    <span className="list-item-label">{t('settings.formatting.removeFillers')}</span>
                                 </div>
                                 <button
                                     className={`toggle-switch ${punctuationSettings.removeFillerWords ? 'active' : ''}`}
@@ -782,7 +754,7 @@ export function SettingsView() {
                         <div className="list-grouped-card">
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Định dạng số</span>
+                                    <span className="list-item-label">{t('settings.formatting.numberFormat')}</span>
                                 </div>
                             </div>
                             <div className="list-grouped-item no-border">
@@ -791,13 +763,13 @@ export function SettingsView() {
                                         className={`format-option ${punctuationSettings.numberFormatting === 'none' ? 'active' : ''}`}
                                         onClick={() => handlePunctuationSettingChange('numberFormatting', 'none')}
                                     >
-                                        Giữ nguyên
+                                        {t('settings.formatting.keep')}
                                     </button>
                                     <button
                                         className={`format-option ${punctuationSettings.numberFormatting === 'digits' ? 'active' : ''}`}
                                         onClick={() => handlePunctuationSettingChange('numberFormatting', 'digits')}
                                     >
-                                        Chuyển thành số (1, 2, 3)
+                                        {t('settings.formatting.toDigits')}
                                     </button>
                                 </div>
                             </div>
@@ -808,7 +780,7 @@ export function SettingsView() {
             case 'performance':
                 return (
                     <div className="settings-content-panel">
-                        <h2 className="content-panel-title">Hiệu năng</h2>
+                        <h2 className="content-panel-title">{t('settings.sections.performance')}</h2>
                         <PerformanceDashboard />
                     </div>
                 )
@@ -816,27 +788,37 @@ export function SettingsView() {
             case 'about':
                 return (
                     <div className="settings-content-panel">
-                        <h2 className="content-panel-title">Giới thiệu</h2>
+                        <h2 className="content-panel-title">{t('settings.sections.about')}</h2>
 
                         <div className="about-header-compact">
-                            <div className="about-logo">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                                    <line x1="12" y1="19" x2="12" y2="23" />
-                                    <line x1="8" y1="23" x2="16" y2="23" />
-                                </svg>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                                <div className="about-logo">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                        <line x1="12" y1="19" x2="12" y2="23" />
+                                        <line x1="8" y1="23" x2="16" y2="23" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3>{t('app.name')}</h3>
+                                    <span className="about-version">{t('settings.about.version', { version: appVersion || '' })}</span>
+                                </div>
                             </div>
-                            <div>
-                                <h3>Voice to Text</h3>
-                                <span className="about-version">Phiên bản {appVersion}</span>
-                            </div>
+                            <button
+                                className="btn btn-ghost btn-small"
+                                onClick={checkForUpdate}
+                                disabled={isCheckingUpdate}
+                                style={{ flexShrink: 0 }}
+                            >
+                                {isCheckingUpdate ? t('common.checking') : t('settings.about.checkUpdatesButton')}
+                            </button>
                         </div>
 
                         <div className="list-grouped-card">
                             <div className="list-grouped-item no-border">
                                 <p className="about-desc-text">
-                                    Ứng dụng chuyển giọng nói thành văn bản sử dụng AI. Ghi âm giọng nói và chuyển đổi thành văn bản một cách nhanh chóng và chính xác.
+                                    {t('settings.about.desc')}
                                 </p>
                             </div>
                         </div>
@@ -844,12 +826,12 @@ export function SettingsView() {
                         <div className="list-grouped-card">
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Tính năng</span>
+                                    <span className="list-item-label">{t('settings.about.features')}</span>
                                 </div>
                             </div>
-                            {['Hỗ trợ nhiều ngôn ngữ', 'Tích hợp AI xử lý ngôn ngữ tự nhiên', 'Phím tắt tùy chỉnh', 'Tự động khởi động cùng Windows'].map((feature, i, arr) => (
-                                <div key={i} className={`list-grouped-item ${i === arr.length - 1 ? 'no-border' : ''}`}>
-                                    <div className="list-item-left">
+                            {(((dict as any)?.settings?.about?.featureList as string[]) || []).map((feature, i, arr) => (
+                                <div key={feature} className={`list-grouped-item ${i === arr.length - 1 ? 'no-border' : ''}`}>
+                                    <div className="list-item-left" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5">
                                             <polyline points="20 6 9 17 4 12" />
                                         </svg>
@@ -862,7 +844,7 @@ export function SettingsView() {
                         <div className="list-grouped-card">
                             <div className="list-grouped-item no-border">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Người phát triển</span>
+                                    <span className="list-item-label">{t('settings.about.developer')}</span>
                                     <span className="list-item-hint">
                                         Nguyễn Quang Trường —{' '}
                                         <a href="#" className="link" onClick={(e) => { e.preventDefault(); window.electronAPI.openExternal('https://github.com/quangtruong2003') }}>
@@ -876,8 +858,8 @@ export function SettingsView() {
                         <div className="list-grouped-card">
                             <div className="list-grouped-item">
                                 <div className="list-item-left">
-                                    <span className="list-item-label">Kiểm tra cập nhật khi khởi động</span>
-                                    <span className="list-item-hint">Tự kiểm tra bản mới mỗi khi khởi động</span>
+                                    <span className="list-item-label">{t('settings.about.autoUpdate')}</span>
+                                    <span className="list-item-hint">{t('settings.about.autoUpdateHint')}</span>
                                 </div>
                                 <button
                                     className={`toggle-switch ${autoUpdate ? 'active' : ''}`}
@@ -892,27 +874,22 @@ export function SettingsView() {
                                     <span className="toggle-slider" />
                                 </button>
                             </div>
-                            <div className="list-grouped-item no-border">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                                    {lastUpdateCheck && (
-                                        <p className="settings-hint">Kiểm tra lần cuối: {lastUpdateCheck}</p>
-                                    )}
-                                    {updateAvailable && (
-                                        <p style={{ color: 'var(--success)', fontSize: 12, fontWeight: 500 }}>Có bản cập nhật mới!</p>
-                                    )}
-                                    <button
-                                        className="btn btn-ghost btn-small btn-full"
-                                        onClick={checkForUpdate}
-                                        disabled={isCheckingUpdate}
-                                    >
-                                        {isCheckingUpdate ? 'Đang kiểm tra...' : 'Kiểm tra ngay'}
-                                    </button>
+                            {(lastUpdateCheck || updateAvailable) && (
+                                <div className="list-grouped-item no-border">
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                        {lastUpdateCheck && (
+                                            <p className="settings-hint">{t('settings.about.lastCheck', { time: lastUpdateCheck })}</p>
+                                        )}
+                                        {updateAvailable && (
+                                            <p style={{ color: 'var(--success)', fontSize: 12, fontWeight: 500 }}>{t('settings.about.updateAvailableInline')}</p>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         <div className="about-footer">
-                            <p>© 2026 Voice to Text. All rights reserved.</p>
+                            <p>© 2026 {t('app.name')}. All rights reserved.</p>
                         </div>
                     </div>
                 )
@@ -944,11 +921,11 @@ export function SettingsView() {
                             </svg>
                         </div>
                         <div>
-                            <h1 className="settings-title">Voice to Text</h1>
-                            <p className="settings-subtitle">Cài đặt ứng dụng</p>
+                            <h1 className="settings-title">{t('app.name')}</h1>
+                            <p className="settings-subtitle">{t('settings.title')}</p>
                         </div>
                     </div>
-                    <button className="btn-icon btn-close-settings" onClick={handleClose} title="Đóng">
+                    <button className="btn-icon btn-close-settings" onClick={handleClose} title={t('common.close')}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
@@ -958,7 +935,7 @@ export function SettingsView() {
 
                 <div className="settings-layout">
                     <nav className="settings-sidebar">
-                        {SIDEBAR_ITEMS.map((item) => (
+                        {getSidebarItems(t).map((item) => (
                             <button
                                 key={item.id}
                                 className={`sidebar-item ${activeSection === item.id ? 'active' : ''}`}
@@ -994,7 +971,7 @@ export function SettingsView() {
                         </>}
                         <kbd>{hotkey.key}</kbd>
                     </div>
-                    <span className="settings-footer-text">để bắt đầu ghi âm</span>
+                    <span className="settings-footer-text">{t('settings.footer.toStartRecording')}</span>
                 </div>
             </div>
         </div>

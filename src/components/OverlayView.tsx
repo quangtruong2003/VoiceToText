@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { addToHistory } from '../lib/transcription-history'
+import { useI18n, AppLanguage } from '../i18n'
 
 const LANGUAGES = [
     { code: 'vi', label: 'VI' },
@@ -40,10 +41,11 @@ function Toast({ message, type, onClose }: { message: string, type: 'success' | 
 }
 
 export function OverlayView() {
+    const { t, language: i18nLang, setLanguage: setI18nLanguage } = useI18n()
     const [audioDeviceId, setAudioDeviceId] = useState<string>('')
     const { isRecording, duration, startRecording, stopRecording } = useAudioRecorder({ deviceId: audioDeviceId })
     const [state, setState] = useState<OverlayState>('idle')
-    const [language, setLanguage] = useState('vi')
+    const [language, setLanguage] = useState(i18nLang)
     const [error, setError] = useState<string | null>(null)
     const [isVisible, setIsVisible] = useState(false)
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
@@ -139,7 +141,7 @@ export function OverlayView() {
     useEffect(() => {
         if (!window.electronAPI) return
         window.electronAPI.getConfig().then((config) => {
-            if (config.language) setLanguage(config.language)
+            if (config.language) setLanguage(config.language as AppLanguage)
             if (config.audioDeviceId) setAudioDeviceId(config.audioDeviceId)
         })
 
@@ -160,11 +162,19 @@ export function OverlayView() {
             }
         })
 
+        const cleanupConfigUpdate = window.electronAPI.onConfigUpdated((partial) => {
+            if (partial.language) {
+                setLanguage(partial.language as AppLanguage)
+                setI18nLanguage(partial.language as AppLanguage)
+            }
+        })
+
         return () => {
             cleanupToggle()
             cleanupInjection()
+            cleanupConfigUpdate()
         }
-    }, [handleStartRecording, handleStopAndTranscribe])
+    }, [handleStartRecording, handleStopAndTranscribe, setI18nLanguage])
 
     useEffect(() => {
         const cleanupForceStop = window.electronAPI.onForceStopRecording(() => {
@@ -259,7 +269,7 @@ export function OverlayView() {
                     className="mini-lang"
                     value={language}
                     onChange={(e) => {
-                        setLanguage(e.target.value)
+                        setLanguage(e.target.value as AppLanguage)
                         window.electronAPI.saveConfig({ language: e.target.value })
                     }}
                 >

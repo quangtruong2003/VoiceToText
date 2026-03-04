@@ -133,6 +133,7 @@ interface ElectronAPI {
   injectText: (text: string) => void
   cancelRecording: () => void
   onInjectionComplete: (callback: (result: { success: boolean }) => void) => () => void
+  onConfigUpdated: (callback: (partial: Partial<AppConfig>) => void) => () => void
   getConfig: () => Promise<AppConfig>
   saveConfig: (config: Partial<AppConfig>) => Promise<{ success: boolean }>
   setStartWithWindows: (enabled: boolean) => Promise<{ success: boolean; error?: string }>

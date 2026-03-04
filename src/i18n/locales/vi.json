@@ -1,0 +1,149 @@
+{
+  "app": {
+    "name": "Voice to Text"
+  },
+  "common": {
+    "close": "Đóng",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "retry": "Thử lại",
+    "checking": "Đang kiểm tra...",
+    "checkNow": "Kiểm tra ngay"
+  },
+  "languages": {
+    "vi": "Tiếng Việt",
+    "en": "English",
+    "ja": "日本語",
+    "ko": "한국어",
+    "zh": "中文"
+  },
+  "settings": {
+    "title": "Cài đặt ứng dụng",
+    "sections": {
+      "general": "Chung",
+      "microphone": "Microphone",
+      "api": "Kết nối API",
+      "formatting": "Định dạng",
+      "performance": "Hiệu năng",
+      "about": "Giới thiệu"
+    },
+    "general": {
+      "defaultLanguage": "Ngôn ngữ mặc định",
+      "hotkey": "Phím tắt ghi âm",
+      "changeHotkey": "Đổi phím tắt",
+      "pressNewHotkey": "Nhấn phím tắt mới...",
+      "hotkeyHint": "Nhấn tổ hợp phím mới (cần ít nhất 2 phím)",
+      "needAtLeast2Keys": "Cần ít nhất 2 phím (ví dụ: Ctrl+Space)",
+      "startWithWindows": "Bắt đầu cùng Windows",
+      "startWithWindowsHint": "Tự động khởi động khi đăng nhập",
+      "languageSaved": "Đã lưu ngôn ngữ!"
+    },
+    "microphone": {
+      "device": "Thiết bị Microphone",
+      "deviceHint": "Chọn microphone để ghi âm",
+      "searching": "Đang tìm thiết bị...",
+      "notFound": "Không tìm thấy microphone",
+      "refresh": "Thử lại",
+      "selected": "Đã chọn microphone!"
+    },
+    "api": {
+      "title": "Kết nối API",
+      "provider": "Nhà cung cấp",
+      "endpoint": "Endpoint",
+      "customEndpoint": "Custom Endpoint",
+      "endpointPlaceholderDefault": "Để trống = mặc định",
+      "endpointPlaceholderCustom": "https://your-proxy.com",
+      "apiKey": "API Key",
+      "envKeyInUse": "Đang sử dụng key từ .env",
+      "show": "Hiện",
+      "hide": "Ẩn",
+      "saveAndVerify": "Lưu & Xác minh",
+      "verified": "Đã xác minh",
+      "getKeyAt": "Lấy key tại",
+      "customPrompt": "Custom Prompt",
+      "optional": "Tùy chọn",
+      "promptPlaceholder": "Ví dụ: Viết hoa chữ cái đầu câu. Tự động phân đoạn...",
+      "promptHint": "Hướng dẫn thêm cho AI khi xử lý văn bản.",
+      "promptSaved": "Đã lưu Prompt!"
+    },
+    "formatting": {
+      "title": "Định dạng văn bản",
+      "autoCapitalize": "Viết hoa đầu câu",
+      "addPeriod": "Thêm dấu chấm cuối câu",
+      "removeFillers": "Xóa từ thừa (à, ừ, um, uh...)",
+      "numberFormat": "Định dạng số",
+      "keep": "Giữ nguyên",
+      "toDigits": "Chuyển thành số (1, 2, 3)",
+      "saved": "Đã lưu cài đặt!"
+    },
+    "connectionStatus": {
+      "unknown": "Chưa kiểm tra",
+      "connected": "Đã kết nối",
+      "error": "Lỗi kết nối"
+    },
+    "toast": {
+      "apiKeySaved": "Đã lưu API Key!",
+      "apiKeyInvalid": "API Key không hợp lệ",
+      "connectionError": "Lỗi kết nối",
+      "updateAvailable": "Có bản cập nhật mới!",
+      "upToDate": "Bạn đang sử dụng phiên bản mới nhất!",
+      "updateCheckError": "Lỗi kiểm tra cập nhật",
+      "hotkeySaved": "Đã lưu phím tắt: {{hotkey}}"
+    },
+    "about": {
+      "version": "Phiên bản {{version}}",
+      "desc": "Ứng dụng chuyển giọng nói thành văn bản sử dụng AI. Ghi âm giọng nói và chuyển đổi thành văn bản một cách nhanh chóng và chính xác.",
+      "features": "Tính năng",
+      "featureList": [
+        "Hỗ trợ nhiều ngôn ngữ",
+        "Tích hợp AI xử lý ngôn ngữ tự nhiên",
+        "Phím tắt tùy chỉnh",
+        "Tự động khởi động cùng Windows"
+      ],
+      "developer": "Người phát triển",
+      "autoUpdate": "Kiểm tra cập nhật khi khởi động",
+      "autoUpdateHint": "Tự kiểm tra bản mới mỗi khi khởi động",
+      "lastCheck": "Kiểm tra lần cuối: {{time}}",
+      "updateAvailableInline": "Có bản cập nhật mới!",
+      "checkUpdatesButton": "Kiểm tra cập nhật"
+    },
+    "footer": {
+      "toStartRecording": "để bắt đầu ghi âm"
+    }
+  },
+  "overlay": {
+    "ready": "Sẵn sàng",
+    "processing": "Đang xử lý...",
+    "microphoneAccessError": "Không thể truy cập microphone",
+    "noAudioDetected": "Không có âm thanh được ghi",
+    "transcriptionError": "Lỗi xử lý",
+    "apiConnectionError": "Lỗi kết nối tới API",
+    "cancel": "Hủy",
+    "retry": "Thử lại"
+  },
+  "history": {
+    "title": "Lịch sử",
+    "recordsCount": "{{count}} bản ghi",
+    "searchPlaceholder": "Tìm kiếm...",
+    "searchNoResult": "Không tìm thấy kết quả",
+    "empty": "Chưa có bản ghi",
+    "clearAll": "Xóa tất cả",
+    "confirmClearAll": "Bạn có chắc chắn muốn xóa toàn bộ lịch sử?",
+    "deleted": "Đã xóa bản ghi",
+    "cleared": "Đã xóa tất cả bản ghi",
+    "selectRecord": "Chọn một bản ghi",
+    "selectRecordDesc": "Chọn một bản ghi bên danh sách để xem nội dung chi tiết",
+    "stats": {
+      "totalRecords": "Tổng bản ghi",
+      "totalWords": "Tổng từ",
+      "avgWords": "TB từ/bản",
+      "today": "Hôm nay"
+    },
+    "detail": {
+      "copy": "Copy văn bản",
+      "delete": "Xóa bản ghi",
+      "editedNotice": "Văn bản đã được chỉnh sửa tự động (viết hoa/chấm câu)"
+    }
+  }
+}
+

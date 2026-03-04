@@ -1,0 +1,149 @@
+{
+  "app": {
+    "name": "Voice to Text"
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "retry": "Retry",
+    "checking": "Checking...",
+    "checkNow": "Check now"
+  },
+  "languages": {
+    "vi": "Vietnamese",
+    "en": "English",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese"
+  },
+  "settings": {
+    "title": "App settings",
+    "sections": {
+      "general": "General",
+      "microphone": "Microphone",
+      "api": "API",
+      "formatting": "Formatting",
+      "performance": "Performance",
+      "about": "About"
+    },
+    "general": {
+      "defaultLanguage": "Default language",
+      "hotkey": "Recording hotkey",
+      "changeHotkey": "Change hotkey",
+      "pressNewHotkey": "Press a new hotkey...",
+      "hotkeyHint": "Enter a new key combo (min 2 keys)",
+      "needAtLeast2Keys": "Need at least 2 keys (e.g. Ctrl+Space)",
+      "startWithWindows": "Start with Windows",
+      "startWithWindowsHint": "Launch automatically on login",
+      "languageSaved": "Language saved!"
+    },
+    "microphone": {
+      "device": "Microphone device",
+      "deviceHint": "Choose microphone for recording",
+      "searching": "Searching devices...",
+      "notFound": "No microphone found",
+      "refresh": "Refresh",
+      "selected": "Microphone selected!"
+    },
+    "api": {
+      "title": "API connection",
+      "provider": "Provider",
+      "endpoint": "Endpoint",
+      "customEndpoint": "Custom Endpoint",
+      "endpointPlaceholderDefault": "Empty = default",
+      "endpointPlaceholderCustom": "https://your-proxy.com",
+      "apiKey": "API Key",
+      "envKeyInUse": "Using key from .env",
+      "show": "Show",
+      "hide": "Hide",
+      "saveAndVerify": "Save & Verify",
+      "verified": "Verified",
+      "getKeyAt": "Get your key at",
+      "customPrompt": "Custom Prompt",
+      "optional": "Optional",
+      "promptPlaceholder": "Example: Capitalize sentences. Add punctuation...",
+      "promptHint": "Extra instructions for the AI when formatting your text.",
+      "promptSaved": "Prompt saved!"
+    },
+    "formatting": {
+      "title": "Text formatting",
+      "autoCapitalize": "Capitalize sentences",
+      "addPeriod": "Add period at the end",
+      "removeFillers": "Remove filler words (um, uh...)",
+      "numberFormat": "Number formatting",
+      "keep": "Keep as-is",
+      "toDigits": "Convert to digits (1, 2, 3)",
+      "saved": "Settings saved!"
+    },
+    "connectionStatus": {
+      "unknown": "Not checked",
+      "connected": "Connected",
+      "error": "Connection error"
+    },
+    "toast": {
+      "apiKeySaved": "API Key saved!",
+      "apiKeyInvalid": "Invalid API Key",
+      "connectionError": "Connection error",
+      "updateAvailable": "Update available!",
+      "upToDate": "You're on the latest version",
+      "updateCheckError": "Update check failed",
+      "hotkeySaved": "Hotkey saved: {{hotkey}}"
+    },
+    "about": {
+      "version": "Version {{version}}",
+      "desc": "A dictation app powered by AI. Record your voice and convert to text quickly and accurately.",
+      "features": "Features",
+      "featureList": [
+        "Multiple languages",
+        "AI-based language processing",
+        "Custom hotkey",
+        "Start with Windows"
+      ],
+      "developer": "Developer",
+      "autoUpdate": "Check for updates on startup",
+      "autoUpdateHint": "Automatically check new releases on startup",
+      "lastCheck": "Last checked: {{time}}",
+      "updateAvailableInline": "New update available!",
+      "checkUpdatesButton": "Check for updates"
+    },
+    "footer": {
+      "toStartRecording": "to start recording"
+    }
+  },
+  "overlay": {
+    "ready": "Ready",
+    "processing": "Processing...",
+    "microphoneAccessError": "Microphone access error",
+    "noAudioDetected": "No audio detected",
+    "transcriptionError": "Transcription error",
+    "apiConnectionError": "API connection error",
+    "cancel": "Cancel",
+    "retry": "Retry"
+  },
+  "history": {
+    "title": "History",
+    "recordsCount": "{{count}} records",
+    "searchPlaceholder": "Search...",
+    "searchNoResult": "No results",
+    "empty": "No records yet",
+    "clearAll": "Clear all",
+    "confirmClearAll": "Are you sure you want to clear all history?",
+    "deleted": "Record deleted",
+    "cleared": "All records cleared",
+    "selectRecord": "Select a record",
+    "selectRecordDesc": "Pick a record from the list to see details",
+    "stats": {
+      "totalRecords": "Total records",
+      "totalWords": "Total words",
+      "avgWords": "Avg words/record",
+      "today": "Today"
+    },
+    "detail": {
+      "copy": "Copy text",
+      "delete": "Delete record",
+      "editedNotice": "Text was auto-formatted (capitalization/punctuation)"
+    }
+  }
+}
+
