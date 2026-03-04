@@ -240,6 +240,30 @@ export function SettingsView() {
         setToast({ message, type })
     }, [])
 
+    const validateApiKey = useCallback(async (keyToValidate: string) => {
+        if (!keyToValidate.trim()) return
+        setError(null)
+        setIsValidating(true)
+        try {
+            const result = await window.electronAPI.validateApiKey(keyToValidate.trim())
+            if (result.valid) {
+                setApiKey(keyToValidate.trim())
+                setApiKeyInput(keyToValidate.trim())
+                setIsValid(true)
+            } else {
+                setIsValid(false)
+                setError(`${t('settings.toast.apiKeyInvalid')}: ${result.error || 'N/A'}`)
+                showToast(t('settings.toast.apiKeyInvalid'), 'error')
+            }
+        } catch (err: any) {
+            setIsValid(false)
+            setError(`${t('settings.toast.connectionError')}: ${err.message || ''}`)
+            showToast(t('settings.toast.connectionError'), 'error')
+        } finally {
+            setIsValidating(false)
+        }
+    }, [t, showToast])
+
     const [hotkey, setHotkey] = useState({ win: false, alt: false, ctrl: true, shift: false, key: 'Space' })
     const [isRecordingHotkey, setIsRecordingHotkey] = useState(false)
 
@@ -249,6 +273,8 @@ export function SettingsView() {
             if (config.apiKey) {
                 setApiKey(config.apiKey)
                 setApiKeyInput(config.apiKey)
+                // Tự động kiểm tra API key khi mở app nếu đã có key
+                validateApiKey(config.apiKey)
             }
             if (config.language) setLanguage(config.language as AppLanguage)
             if (config.customPrompt) setCustomPrompt(config.customPrompt)
@@ -281,33 +307,19 @@ export function SettingsView() {
             }
         })
         return cleanupConfigUpdate
-    }, [setI18nLanguage])
+    }, [setI18nLanguage, validateApiKey])
 
     const handleSaveApiKey = async () => {
         if (!apiKeyInput.trim()) return
-        setError(null)
-        setIsValidating(true)
+        await validateApiKey(apiKeyInput.trim())
         try {
-            const result = await window.electronAPI.validateApiKey(apiKeyInput.trim())
-            if (result.valid) {
-                await window.electronAPI.saveConfig({
-                    apiKey: apiKeyInput.trim(),
-                    language
-                })
-                setApiKey(apiKeyInput.trim())
-                setIsValid(true)
-                showToast(t('settings.toast.apiKeySaved'), 'success')
-            } else {
-                setIsValid(false)
-                setError(`${t('settings.toast.apiKeyInvalid')}: ${result.error || 'N/A'}`)
-                showToast(t('settings.toast.apiKeyInvalid'), 'error')
-            }
+            await window.electronAPI.saveConfig({
+                apiKey: apiKeyInput.trim(),
+                language
+            })
+            showToast(t('settings.toast.apiKeySaved'), 'success')
         } catch (err: any) {
-            setIsValid(false)
-            setError(`${t('settings.toast.connectionError')}: ${err.message || ''}`)
             showToast(t('settings.toast.connectionError'), 'error')
-        } finally {
-            setIsValidating(false)
         }
     }
 
