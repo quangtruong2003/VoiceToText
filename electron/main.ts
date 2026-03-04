@@ -44,6 +44,7 @@ interface AppConfig {
   customEndpoint: string
   startWithWindows: boolean
   hotkey: string
+  geminiModel: string
   autoUpdate?: boolean
   lastUpdateCheck?: string
   // Punctuation & Formatting Settings
@@ -111,8 +112,8 @@ function loadConfig(): AppConfig {
         needsMigration = true
       }
 
-      // Migration: geminiModel gemini-2.0-flash → gemini-3-flash-preview
-      if (config.geminiModel && config.geminiModel.includes('gemini-2')) {
+      // Migration: geminiModel gemini-2.0-flash → gemini-2.0-flash (current default)
+      if (config.geminiModel && config.geminiModel.includes('gemini-3-flash-preview')) {
         config.geminiModel = 'gemini-3-flash-preview'
         needsMigration = true
       }
@@ -134,6 +135,7 @@ function loadConfig(): AppConfig {
         customEndpoint: '',
         startWithWindows: false,
         hotkey: 'Control+Space',
+        geminiModel: 'gemini-2.0-flash',
         punctuationSettings: DEFAULT_PUNCTUATION_SETTINGS,
 
         ...config
@@ -154,6 +156,7 @@ function loadConfig(): AppConfig {
     customEndpoint: '',
     startWithWindows: false,
     hotkey: 'Control+Space',
+    geminiModel: 'gemini-2.0-flash',
     punctuationSettings: DEFAULT_PUNCTUATION_SETTINGS,
 
   }
@@ -177,6 +180,69 @@ function getApiEndpoint(): string {
   }
   // Default Google endpoint
   return 'https://generativelanguage.googleapis.com'
+}
+
+interface GeminiModel {
+  name: string
+  displayName: string
+  description: string
+  version: string
+  supportsAudio?: boolean
+}
+
+async function fetchGeminiModels(): Promise<GeminiModel[]> {
+  const apiKey = getApiKey()
+  if (!apiKey) return []
+
+  const config = loadConfig()
+  const baseUrl = getApiEndpoint()
+  const apiVersion = (config.apiType === 'google' || !config.apiType) ? 'v1beta' : 'v1'
+
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+
+    if (config.apiType === 'google' || !config.apiType) {
+      headers['X-goog-api-key'] = apiKey
+    } else {
+      headers['Authorization'] = `Bearer ${apiKey}`
+    }
+
+    const response = await fetch(`${baseUrl}/${apiVersion}/models?pageSize=100`, {
+      headers
+    })
+
+    if (!response.ok) {
+      console.error('Failed to fetch models:', response.status, await response.text())
+      return []
+    }
+
+    const data = await response.json()
+    const models: GeminiModel[] = []
+
+    if (data.models && Array.isArray(data.models)) {
+      for (const model of data.models) {
+        // Filter only Gemini models that support generateContent
+        if (model.name && model.name.includes('gemini') &&
+            (model.supportedGenerationMethods?.includes('generateContent') ||
+             model.supportedGenerationMethods?.includes('streamGenerateContent'))) {
+          models.push({
+            name: model.name.replace('models/', ''),
+            displayName: model.displayName || model.name,
+            description: model.description || '',
+            version: model.version || '',
+            supportsAudio: model.supportedGenerationMethods?.includes('streamGenerateContent')
+          })
+        }
+      }
+    }
+
+    return models
+  } catch (error) {
+    console.error('Error fetching Gemini models:', error)
+    return []
+  }
 }
 
 function saveConfig(config: Partial<AppConfig>) {
@@ -634,9 +700,12 @@ function toggleRecording() {
 }
 
 async function fetchGemini(apiKey: string, payload: any): Promise<Response> {
-  const models = ['gemini-3-flash-preview']
-  const baseUrl = getApiEndpoint()
   const config = loadConfig()
+  
+  // Always use model from config - must be set by user from the dropdown
+  const model = config.geminiModel || 'gemini-2.0-flash'
+  
+  const baseUrl = getApiEndpoint()
   let lastResponse: Response | null = null
 
   // Determine API version path based on API type
@@ -652,18 +721,41 @@ async function fetchGemini(apiKey: string, payload: any): Promise<Response> {
     headers['Authorization'] = `Bearer ${apiKey}`
   }
 
-  for (const model of models) {
+  // Try the selected model with retries
+  let retries = 3
+  while (retries > 0) {
     try {
       const resp = await fetch(`${baseUrl}/${apiVersion}/models/${model}:generateContent`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payload)
       })
+      
       if (resp.ok) return resp
+      
+      // Retry on 503 (Service Unavailable) and 429 (Too Many Requests)
+      if ((resp.status === 503 || resp.status === 429) && retries > 1) {
+        const delay = Math.pow(2, 3 - retries) * 1000 // Exponential backoff: 1s, 2s, 4s
+        console.warn(`Gemini model ${model} returned ${resp.status}, retrying in ${delay}ms...`)
+        lastResponse = resp
+        await new Promise(resolve => setTimeout(resolve, delay))
+        retries--
+        continue
+      }
+      
       lastResponse = resp
-      console.warn(`Gemini model ${model} failed with status ${resp.status}, trying next...`)
+      console.warn(`Gemini model ${model} failed with status ${resp.status}`)
+      break
     } catch (err) {
       console.error(`Network error with model ${model}:`, err)
+      if (retries > 1) {
+        const delay = Math.pow(2, 3 - retries) * 1000
+        console.log(`Retrying after ${delay}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        retries--
+        continue
+      }
+      break
     }
   }
   return lastResponse!
@@ -935,6 +1027,11 @@ function setupIPC() {
     const result = await validateApiKey(apiKey)
     // Return result without showing native dialogs - UI handles notifications via toast
     return result
+  })
+
+  ipcMain.handle('get-gemini-models', async () => {
+    const models = await fetchGeminiModels()
+    return { models }
   })
 
   ipcMain.on('close-settings', () => {

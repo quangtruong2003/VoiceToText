@@ -62,7 +62,12 @@
       "optional": "선택 사항",
       "promptPlaceholder": "예: 문장 첫 글자 대문자. 구두점 추가...",
       "promptHint": "텍스트 서식화를 위한 추가 지시.",
-      "promptSaved": "프롬프트를 저장했습니다!"
+      "promptSaved": "프롬프트를 저장했습니다!",
+      "geminiModel": "AI 모델",
+      "modelHint": "음성 처리를 위한 Gemini 모델 선택",
+      "modelSaved": "모델을 저장했습니다!",
+      "noModels": "사용 가능한 모델이 없습니다 - 먼저 API 키를 입력하세요",
+      "refreshModels": "모델 목록 새로고침"
     },
     "formatting": {
       "title": "텍스트 서식",

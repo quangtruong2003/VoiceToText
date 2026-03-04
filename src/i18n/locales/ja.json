@@ -62,7 +62,12 @@
       "optional": "任意",
       "promptPlaceholder": "例: 文頭を大文字に。句読点を追加...",
       "promptHint": "テキスト整形の追加指示。",
-      "promptSaved": "プロンプトを保存しました！"
+      "promptSaved": "プロンプトを保存しました！",
+      "geminiModel": "AIモデル",
+      "modelHint": "音声処理用のGeminiモデルを選択",
+      "modelSaved": "モデルを保存しました！",
+      "noModels": "利用可能なモデルがありません - 先にAPIキーを入力してください",
+      "refreshModels": "モデルリストを更新"
     },
     "formatting": {
       "title": "テキスト整形",

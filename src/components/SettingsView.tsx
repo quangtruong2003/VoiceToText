@@ -234,6 +234,11 @@ export function SettingsView() {
         numberFormatting: 'none' as 'none' | 'digits' | 'words',
     })
 
+    // Gemini model selection
+    const [geminiModel, setGeminiModel] = useState('gemini-2.0-flash')
+    const [availableModels, setAvailableModels] = useState<{ name: string; displayName: string }[]>([])
+    const [isLoadingModels, setIsLoadingModels] = useState(false)
+
     const { devices: audioDevices, selectedDeviceId: selectedAudioDevice, isLoading: audioDevicesLoading, selectDevice: setAudioDevice, reloadDevices: reloadAudioDevices } = useAudioDevices()
 
     const showToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -286,6 +291,12 @@ export function SettingsView() {
             if (config.punctuationSettings) {
                 setPunctuationSettings(config.punctuationSettings)
             }
+            if (config.geminiModel) {
+                setGeminiModel(config.geminiModel)
+            }
+
+            // Load available Gemini models
+            loadGeminiModels()
 
             if (config.hotkey) {
                 const parts = config.hotkey.split('+')
@@ -318,9 +329,32 @@ export function SettingsView() {
                 language
             })
             showToast(t('settings.toast.apiKeySaved'), 'success')
+            // Reload models after API key is saved
+            loadGeminiModels()
         } catch (err: any) {
             showToast(t('settings.toast.connectionError'), 'error')
         }
+    }
+
+    const loadGeminiModels = async () => {
+        if (!window.electronAPI) return
+        setIsLoadingModels(true)
+        try {
+            const result = await window.electronAPI.getGeminiModels()
+            if (result.models && result.models.length > 0) {
+                setAvailableModels(result.models)
+            }
+        } catch (err) {
+            console.error('Failed to load Gemini models:', err)
+        } finally {
+            setIsLoadingModels(false)
+        }
+    }
+
+    const handleGeminiModelChange = async (model: string) => {
+        setGeminiModel(model)
+        await window.electronAPI.saveConfig({ geminiModel: model })
+        showToast(t('settings.api.modelSaved'), 'success')
     }
 
     const handleSavePrompt = async () => {
@@ -675,6 +709,60 @@ export function SettingsView() {
                                         </p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        <div className="list-grouped-card">
+                            <div className="list-grouped-item">
+                                <div className="list-item-left">
+                                    <span className="list-item-label">
+                                        {t('settings.api.geminiModel')}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="list-grouped-item no-border">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <select
+                                            className="settings-select"
+                                            value={geminiModel}
+                                            onChange={(e) => handleGeminiModelChange(e.target.value)}
+                                            disabled={isLoadingModels || availableModels.length === 0}
+                                            style={{ flex: 1 }}
+                                        >
+                                            {isLoadingModels ? (
+                                                <option value="">{t('common.loading')}...</option>
+                                            ) : availableModels.length > 0 ? (
+                                                availableModels.map((model) => (
+                                                    <option key={model.name} value={model.name}>
+                                                        {model.displayName}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <option value="">{t('settings.api.noModels')}</option>
+                                            )}
+                                        </select>
+                                        <button
+                                            className="btn btn-secondary btn-small"
+                                            onClick={loadGeminiModels}
+                                            disabled={isLoadingModels}
+                                            title={t('settings.api.refreshModels')}
+                                        >
+                                            {isLoadingModels ? (
+                                                <span className="btn-spinner"></span>
+                                            ) : (
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M23 4v6h-6"></path>
+                                                    <path d="M1 20v-6h6"></path>
+                                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                    <p className="settings-hint">
+                                        {t('settings.api.modelHint')}
+                                    </p>
+                                </div>
                             </div>
                         </div>
 

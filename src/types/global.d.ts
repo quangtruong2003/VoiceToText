@@ -8,6 +8,7 @@ interface AppConfig {
   customEndpoint: string
   startWithWindows: boolean
   hotkey: string
+  geminiModel: string
   hasEnvKey?: boolean
   autoUpdate?: boolean
   lastUpdateCheck?: string
@@ -140,6 +141,7 @@ interface ElectronAPI {
   checkForUpdate: () => Promise<{ updateAvailable: boolean; latestVersion?: string; error?: string }>
   registerHotkey: (hotkey: string) => void
   validateApiKey: (apiKey: string) => Promise<{valid: boolean, error?: string}>
+  getGeminiModels: () => Promise<{ models: { name: string; displayName: string; description: string; version: string; supportsAudio?: boolean }[] }>
   closeSettings: () => void
   openExternal: (url: string) => void
   // Performance monitoring APIs

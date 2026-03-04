@@ -62,7 +62,12 @@
       "optional": "可选",
       "promptPlaceholder": "例如：首字母大写。自动加标点...",
       "promptHint": "为 AI 提供额外文本处理指令。",
-      "promptSaved": "Prompt 已保存！"
+      "promptSaved": "Prompt 已保存！",
+      "geminiModel": "AI 模型",
+      "modelHint": "选择 Gemini 模型处理语音",
+      "modelSaved": "模型已保存！",
+      "noModels": "无可用模型 - 请先输入 API key",
+      "refreshModels": "刷新模型列表"
     },
     "formatting": {
       "title": "文本格式",

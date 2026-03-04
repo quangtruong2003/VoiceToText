@@ -64,7 +64,12 @@
       "optional": "Optional",
       "promptPlaceholder": "Example: Capitalize sentences. Add punctuation...",
       "promptHint": "Extra instructions for the AI when formatting your text.",
-      "promptSaved": "Prompt saved!"
+      "promptSaved": "Prompt saved!",
+      "geminiModel": "AI Model",
+      "modelHint": "Select Gemini model for voice processing",
+      "modelSaved": "Model saved!",
+      "noModels": "No models available - enter API key first",
+      "refreshModels": "Refresh models list"
     },
     "formatting": {
       "title": "Text formatting",

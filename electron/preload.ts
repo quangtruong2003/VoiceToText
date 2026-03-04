@@ -67,6 +67,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('validate-api-key', apiKey)
   },
 
+  getGeminiModels: () => {
+    return ipcRenderer.invoke('get-gemini-models')
+  },
+
   closeSettings: () => {
     ipcRenderer.send('close-settings')
   },
