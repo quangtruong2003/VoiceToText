@@ -128,6 +128,7 @@ interface ExecutionTrace {
 interface ElectronAPI {
   onToggleRecording: (callback: (isRecording: boolean) => void) => () => void
   onForceStopRecording: (callback: () => void) => () => void
+  onForceCancelRecording: (callback: () => void) => () => void
   transcribeAudio: (audioBuffer: ArrayBuffer, language: string) => Promise<{ success: boolean; text?: string; error?: string }>
   injectText: (text: string) => void
   cancelRecording: () => void

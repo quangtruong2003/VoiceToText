@@ -11,7 +11,7 @@ const LANGUAGES = [
     { code: 'zh', name: '中文', flag: '🇨🇳' },
 ]
 
-    // App version - will be loaded from config
+// App version - will be loaded from config
 const GITHUB_REPO = 'quangtruong2003/voice-to-text'
 
 const API_PROVIDERS = [
@@ -32,19 +32,7 @@ const API_PROVIDERS = [
     },
 ]
 
-// Windows reserved keys that should not be used as custom hotkeys
-const WINDOWS_RESERVED_KEYS = [
-    'Alt', 'Control', 'Ctrl', 'Shift', 'Meta', 'Win', 'Tab', 'Escape', 'Esc',
-    'Enter', 'Return', 'Backspace', 'Delete', 'Insert', 'Home', 'End',
-    'PageUp', 'PageDown', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
-    'Space', 'CapsLock', 'NumLock', 'ScrollLock', 'PrintScreen',
-    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
-]
 
-// Keys that require modifier (Win key) to be valid
-const MODIFIER_REQUIRED_KEYS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 function CollapsibleSection({
     title,
@@ -190,7 +178,7 @@ export function SettingsView() {
     }, [])
 
     // Hotkey customization state
-    const [hotkey, setHotkey] = useState({ win: false, alt: false, ctrl: true, key: 'Space' })
+    const [hotkey, setHotkey] = useState({ win: false, alt: false, ctrl: true, shift: false, key: 'Space' })
     const [isRecordingHotkey, setIsRecordingHotkey] = useState(false)
 
     useEffect(() => {
@@ -219,6 +207,7 @@ export function SettingsView() {
                     win: parts.includes('Win'),
                     alt: parts.includes('Alt'),
                     ctrl: parts.includes('Control'),
+                    shift: parts.includes('Shift'),
                     key: parts.find(p => !['Win', 'Alt', 'Control', 'Ctrl', 'Shift'].includes(p)) || 'Space'
                 })
             }
@@ -338,67 +327,38 @@ export function SettingsView() {
         e.stopPropagation()
 
         const key = e.key
-        const ctrl = e.ctrlKey || e.metaKey
+        const ctrl = e.ctrlKey
         const alt = e.altKey
         const shift = e.shiftKey
         const win = e.metaKey
 
-        // Check if it's a reserved key
-        if (WINDOWS_RESERVED_KEYS.includes(key) || key === 'Meta') {
-            showToast('Phím này không thể sử dụng làm phím tắt', 'error')
+        if (['Control', 'Ctrl', 'Alt', 'Shift', 'Meta', 'Win'].includes(key)) {
             return
         }
 
-        // Build the hotkey string
-        let hotkeyParts: string[] = []
-        let finalKey = key.toUpperCase()
+        const hotkeyParts: string[] = []
+        if (ctrl) hotkeyParts.push('Control')
+        if (alt) hotkeyParts.push('Alt')
+        if (shift) hotkeyParts.push('Shift')
+        if (win) hotkeyParts.push('Win')
 
-        // Handle modifier keys
-        if (win) {
-            hotkeyParts.push('Win')
-            finalKey = key.toUpperCase()
-        }
-        if (alt || key === 'Alt') {
-            hotkeyParts.push('Alt')
-        }
-        if (ctrl || key === 'Control' || key === 'Ctrl') {
-            hotkeyParts.push('Control')
-        }
-        if (shift || key === 'Shift') {
-            hotkeyParts.push('Shift')
+        const finalKey = key === ' ' ? 'Space' : key.length === 1 ? key.toUpperCase() : key
+        hotkeyParts.push(finalKey)
+
+        if (hotkeyParts.length < 2) {
+            showToast('Cần ít nhất 2 phím (ví dụ: Ctrl+Space)', 'error')
+            return
         }
 
-        // If no modifier keys pressed, require a modifier key
-        if (!win && !alt && !ctrl && !shift) {
-            // Just a letter/number key - add Control by default
-            if (MODIFIER_REQUIRED_KEYS.includes(key.toUpperCase()) || /^[0-9]$/.test(key)) {
-                hotkeyParts = ['Control', key.toUpperCase()]
-            } else {
-                showToast('Cần có modifier key (ví dụ: Ctrl+Space)', 'error')
-                return
-            }
-        } else {
-            // Check if we have at least one modifier (Ctrl/Win/Alt recommended)
-            if (!win && !alt && !ctrl) {
-                showToast('Cần có Ctrl, Win hoặc Alt key (tránh xung đột với phím hệ thống)', 'error')
-                return
-            }
-            // Add the final key
-            if (!['Win', 'Alt', 'Control', 'Ctrl', 'Shift'].includes(key.toUpperCase())) {
-                hotkeyParts.push(key.toUpperCase())
-            }
-        }
-
-        // Save the hotkey
         const hotkeyString = hotkeyParts.join('+')
         setHotkey({
             win: hotkeyString.includes('Win'),
             alt: hotkeyString.includes('Alt'),
             ctrl: hotkeyString.includes('Control'),
-            key: hotkeyParts[hotkeyParts.length - 1]
+            shift: hotkeyString.includes('Shift'),
+            key: finalKey
         })
 
-        // Save to config
         window.electronAPI.saveConfig({ hotkey: hotkeyString })
         window.electronAPI.registerHotkey(hotkeyString)
 
@@ -415,8 +375,10 @@ export function SettingsView() {
 
     const getCurrentHotkeyDisplay = () => {
         const parts = []
-        if (hotkey.win) parts.push('Win')
+        if (hotkey.ctrl) parts.push('Ctrl')
         if (hotkey.alt) parts.push('Alt')
+        if (hotkey.shift) parts.push('Shift')
+        if (hotkey.win) parts.push('Win')
         parts.push(hotkey.key)
         return parts.join(' + ')
     }
@@ -566,6 +528,10 @@ export function SettingsView() {
                                                             <kbd>Alt</kbd>
                                                             <span>+</span>
                                                         </>}
+                                                        {hotkey.shift && <>
+                                                            <kbd>Shift</kbd>
+                                                            <span>+</span>
+                                                        </>}
                                                         <kbd>{hotkey.key}</kbd>
                                                     </div>
                                                     <button
@@ -578,7 +544,7 @@ export function SettingsView() {
                                             )}
                                         </div>
                                         <p className="settings-hint">
-                                            Nhấn phím mới (cần có Ctrl/Win/Alt + phím khác)
+                                            Nhấn tổ hợp phím mới (cần ít nhất 2 phím)
                                         </p>
                                     </div>
                                 </div>
@@ -934,10 +900,10 @@ export function SettingsView() {
                             <div className="about-header">
                                 <div className="about-logo">
                                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                                        <line x1="12" y1="19" x2="12" y2="23"/>
-                                        <line x1="8" y1="23" x2="16" y2="23"/>
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                        <line x1="12" y1="19" x2="12" y2="23" />
+                                        <line x1="8" y1="23" x2="16" y2="23" />
                                     </svg>
                                 </div>
                                 <h2>Voice to Text</h2>
@@ -951,25 +917,25 @@ export function SettingsView() {
                             <div className="about-features">
                                 <div className="about-feature">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="20 6 9 17 4 12"/>
+                                        <polyline points="20 6 9 17 4 12" />
                                     </svg>
                                     <span>Hỗ trợ nhiều ngôn ngữ</span>
                                 </div>
                                 <div className="about-feature">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="20 6 9 17 4 12"/>
+                                        <polyline points="20 6 9 17 4 12" />
                                     </svg>
                                     <span>Tích hợp AI xử lý ngôn ngữ tự nhiên</span>
                                 </div>
                                 <div className="about-feature">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="20 6 9 17 4 12"/>
+                                        <polyline points="20 6 9 17 4 12" />
                                     </svg>
                                     <span>Phím tắt tùy chỉnh</span>
                                 </div>
                                 <div className="about-feature">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <polyline points="20 6 9 17 4 12"/>
+                                        <polyline points="20 6 9 17 4 12" />
                                     </svg>
                                     <span>Tự động khởi động cùng Windows</span>
                                 </div>
@@ -987,35 +953,47 @@ export function SettingsView() {
                                 <h3>Cập nhật tự động</h3>
                                 <div className="update-status">
                                     <label className="toggle-label">
-                                        <span>Kiểm tra cập nhật khi khởi động</span>
-                                        <div className="toggle-switch">
-                                            <input
-                                                type="checkbox"
-                                                checked={autoUpdate}
-                                                onChange={(e) => {
-                                                    setAutoUpdate(e.target.checked)
-                                                    window.electronAPI.saveConfig({ autoUpdate: e.target.checked })
-                                                }}
-                                            />
-                                            <span className="toggle-slider"/>
+                                        <div className="update-label-text">
+                                            <span>Kiểm tra cập nhật khi khởi động</span>
+                                            <span className="update-label-sub">
+                                                Ứng dụng sẽ tự kiểm tra bản mới mỗi khi khởi động cùng Windows
+                                            </span>
                                         </div>
+                                        <button
+                                            className={`toggle-switch ${autoUpdate ? 'active' : ''}`}
+                                            onClick={() => {
+                                                const next = !autoUpdate
+                                                setAutoUpdate(next)
+                                                window.electronAPI.saveConfig({ autoUpdate: next })
+                                            }}
+                                            role="switch"
+                                            aria-checked={autoUpdate}
+                                        >
+                                            <span className="toggle-slider" />
+                                        </button>
                                     </label>
+
+                                    <div className="update-meta">
+                                        {lastUpdateCheck && (
+                                            <p className="update-check-time">
+                                                Kiểm tra lần cuối: {lastUpdateCheck}
+                                            </p>
+                                        )}
+                                        {updateAvailable && (
+                                            <p className="update-available">Có bản cập nhật mới!</p>
+                                        )}
+                                    </div>
+
+                                    <div className="button-row single-button">
+                                        <button
+                                            className="btn btn-ghost btn-small btn-full"
+                                            onClick={checkForUpdate}
+                                            disabled={isCheckingUpdate}
+                                        >
+                                            {isCheckingUpdate ? 'Đang kiểm tra...' : 'Kiểm tra ngay'}
+                                        </button>
+                                    </div>
                                 </div>
-                                {lastUpdateCheck && (
-                                    <p className="update-check-time">
-                                        Kiểm tra lần cuối: {lastUpdateCheck}
-                                    </p>
-                                )}
-                                <button
-                                    className="btn btn-secondary btn-small"
-                                    onClick={checkForUpdate}
-                                    disabled={isCheckingUpdate}
-                                >
-                                    {isCheckingUpdate ? 'Đang kiểm tra...' : 'Kiểm tra ngay'}
-                                </button>
-                                {updateAvailable && (
-                                    <p className="update-available">Có bản cập nhật mới!</p>
-                                )}
                             </div>
 
                             <div className="about-footer">
@@ -1037,6 +1015,10 @@ export function SettingsView() {
                         </>}
                         {hotkey.alt && <>
                             <kbd>Alt</kbd>
+                            <span className="hotkey-plus">+</span>
+                        </>}
+                        {hotkey.shift && <>
+                            <kbd>Shift</kbd>
                             <span className="hotkey-plus">+</span>
                         </>}
                         <kbd>{hotkey.key}</kbd>

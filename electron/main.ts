@@ -96,7 +96,31 @@ function loadConfig(): AppConfig {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'))
-      return {
+
+      let needsMigration = false
+
+      // Migration: hotkey Win+Alt+H → Control+Space
+      if (config.hotkey === 'Win+Alt+H') {
+        config.hotkey = 'Control+Space'
+        needsMigration = true
+      }
+
+      // Migration: geminiModel gemini-2.0-flash → gemini-3-flash-preview
+      if (config.geminiModel && config.geminiModel.includes('gemini-2')) {
+        config.geminiModel = 'gemini-3-flash-preview'
+        needsMigration = true
+      }
+
+      // Migration: remove obsolete fields
+      const obsoleteFields = ['showTextEditor']
+      for (const field of obsoleteFields) {
+        if (field in config) {
+          delete config[field]
+          needsMigration = true
+        }
+      }
+
+      const merged: AppConfig = {
         apiKey: '',
         language: 'vi',
         customPrompt: '',
@@ -108,6 +132,12 @@ function loadConfig(): AppConfig {
 
         ...config
       }
+
+      if (needsMigration) {
+        fs.writeFileSync(CONFIG_PATH, JSON.stringify(merged, null, 2))
+      }
+
+      return merged
     }
   } catch {}
   return {
@@ -514,35 +544,42 @@ function handleWindowClose(window: BrowserWindow) {
   }
 }
 
-function registerEnterShortcut() {
+function registerRecordingShortcuts() {
   try {
-    const handleEnter = () => {
+    const handleStop = () => {
       if (isRecording) {
         overlayWindow?.webContents.send('force-stop-recording')
       }
     }
-    globalShortcut.register('Enter', handleEnter)
-    globalShortcut.register('Return', handleEnter)
+    const handleCancel = () => {
+      if (isRecording) {
+        overlayWindow?.webContents.send('force-cancel-recording')
+      }
+    }
+    globalShortcut.register('Enter', handleStop)
+    globalShortcut.register('Return', handleStop)
+    globalShortcut.register('Escape', handleCancel)
   } catch (e) {
-    console.warn('Failed to register enter shortcut', e)
+    console.warn('Failed to register recording shortcuts', e)
   }
 }
 
-function unregisterEnterShortcut() {
+function unregisterRecordingShortcuts() {
   try { globalShortcut.unregister('Enter') } catch {}
   try { globalShortcut.unregister('Return') } catch {}
+  try { globalShortcut.unregister('Escape') } catch {}
 }
 
 function toggleRecording() {
   isRecording = !isRecording
 
   if (isRecording) {
-    registerEnterShortcut()
+    registerRecordingShortcuts()
     // Show window without stealing focus from the user's current text editor/app
     overlayWindow?.showInactive()
     overlayWindow?.webContents.send('toggle-recording', true)
   } else {
-    unregisterEnterShortcut()
+    unregisterRecordingShortcuts()
     overlayWindow?.webContents.send('toggle-recording', false)
     overlayWindow?.hide()
   }
@@ -732,8 +769,8 @@ async function injectText(text: string) {
 
 function registerGlobalShortcut() {
   const config = loadConfig()
-  const hotkey = config.hotkey || 'Win+Alt+H'
-  // Convert hotkey string to Electron format (e.g., "Win+Alt+H" -> "Super+Alt+H")
+  const hotkey = config.hotkey || 'Control+Space'
+  // Convert hotkey string to Electron format (e.g., "Control+Space" stays, "Win+H" -> "Super+H")
   const electronHotkey = hotkey.replace('Win', 'Super')
   try {
     globalShortcut.register(electronHotkey, () => toggleRecording())
@@ -759,7 +796,7 @@ function registerNewHotkey(hotkey: string) {
 function setupIPC() {
   ipcMain.handle('transcribe-audio', async (_event, audioBuffer: ArrayBuffer, language: string) => {
     isRecording = false
-    unregisterEnterShortcut()
+    unregisterRecordingShortcuts()
     try {
       const text = await transcribeAudio(audioBuffer, language)
       return { success: true, text }
@@ -776,13 +813,13 @@ function setupIPC() {
 
   ipcMain.on('inject-text', async (_event, text: string) => {
     isRecording = false
-    unregisterEnterShortcut()
+    unregisterRecordingShortcuts()
     await injectText(text)
   })
 
   ipcMain.on('cancel-recording', () => {
     isRecording = false
-    unregisterEnterShortcut()
+    unregisterRecordingShortcuts()
     overlayWindow?.hide()
   })
 

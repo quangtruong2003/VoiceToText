@@ -382,7 +382,7 @@ export function RecorderOverlay() {
                                 </div>
                             ) : (
                                 <p className="placeholder-text">
-                                    {apiKey ? 'Nhấn Win+Alt+H để bắt đầu' : 'Cần cấu hình API Key'}
+                                    {apiKey ? 'Nhấn phím tắt để bắt đầu' : 'Cần cấu hình API Key'}
                                 </p>
                             )}
                         </div>

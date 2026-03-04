@@ -13,6 +13,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('force-stop-recording', listener)
   },
 
+  onForceCancelRecording: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('force-cancel-recording', listener)
+    return () => ipcRenderer.removeListener('force-cancel-recording', listener)
+  },
+
   transcribeAudio: (audioBuffer: ArrayBuffer, language: string) => {
     return ipcRenderer.invoke('transcribe-audio', audioBuffer, language)
   },

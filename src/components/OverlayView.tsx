@@ -172,8 +172,19 @@ export function OverlayView() {
                 handleStopAndTranscribe()
             }
         })
-        return cleanupForceStop
-    }, [state, handleStopAndTranscribe])
+        const cleanupForceCancel = window.electronAPI.onForceCancelRecording(() => {
+            if (state === 'recording') stopRecording()
+            setIsVisible(false)
+            setState('idle')
+            setError(null)
+            setPreservedBlob(null)
+            window.electronAPI.cancelRecording()
+        })
+        return () => {
+            cleanupForceStop()
+            cleanupForceCancel()
+        }
+    }, [state, handleStopAndTranscribe, stopRecording])
 
     const handleCancel = () => {
         if (isRecording) stopRecording()
