@@ -9,6 +9,7 @@ interface AppConfig {
   startWithWindows: boolean
   hotkey: string
   historyHotkey: string
+  settingsHotkey: string
   geminiModel: string
   hasEnvKey?: boolean
   autoUpdate?: boolean

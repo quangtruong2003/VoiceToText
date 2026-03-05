@@ -361,7 +361,7 @@ export function SettingsView() {
                     alt: parts.includes('Alt'),
                     ctrl: parts.includes('Control'),
                     shift: parts.includes('Shift'),
-                    key: parts.find(p => !['Win', 'Alt', 'Control', 'Ctrl', 'Shift'].includes(p)) || 'S'
+                    key: parts.find((p: string) => !['Win', 'Alt', 'Control', 'Ctrl', 'Shift'].includes(p)) || 'S'
                 })
             }
         })

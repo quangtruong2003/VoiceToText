@@ -1,4 +1,4 @@
-appId: com.voicetotext.app
+appId: com.voicetoprompt.app
 productName: Voice to Prompt
 directories:
   output: release
