@@ -18,6 +18,7 @@ interface AppConfig {
   transcriptionEngine: 'gemini' | 'whisper'
   whisperModel: string
   whisperModelPath: string
+  whisperTask?: 'transcribe' | 'translate'
   // Punctuation & Formatting Settings
   punctuationSettings?: {
     autoCapitalize: boolean

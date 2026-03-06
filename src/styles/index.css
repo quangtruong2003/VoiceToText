@@ -94,18 +94,31 @@ body {
   width: 100vw;
   height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   position: relative;
 }
 
-/* Toast positioning in overlay container - top center to avoid blocking close button */
+/* Toast below the overlay card - not fixed, flows in flex column */
 .overlay-container .toast {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%) !important;
-  z-index: 1000;
+  position: relative;
+  top: unset;
+  left: unset;
+  transform: none;
+  animation: toastSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Retry prompt in idle state */

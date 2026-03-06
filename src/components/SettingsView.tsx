@@ -14,7 +14,7 @@ const LANGUAGES = [
 
 const GITHUB_REPO = 'quangtruong2003/VoiceToPrompt'
 
-type SidebarSection = 'general' | 'microphone' | 'engine' | 'api' | 'formatting' | 'performance' | 'about'
+type SidebarSection = 'general' | 'microphone' | 'engine' | 'formatting' | 'performance' | 'about'
 
 function getSidebarItems(t: (key: string) => string): { id: SidebarSection; label: string; icon: JSX.Element }[] {
     return [
@@ -48,15 +48,6 @@ function getSidebarItems(t: (key: string) => string): { id: SidebarSection; labe
                     <path d="M12 2a4 4 0 0 0-4 4v1H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z" />
                     <circle cx="9" cy="14" r="1" />
                     <circle cx="15" cy="14" r="1" />
-                </svg>
-            ),
-        },
-        {
-            id: 'api',
-            label: t('settings.sections.api'),
-            icon: (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 12h8" /><path d="M4 18V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M18 12h2" /><path d="M18 6h2" /><path d="M18 18h2" />
                 </svg>
             ),
         },
@@ -259,6 +250,7 @@ export function SettingsView() {
     const [whisperDownloadStatus, setWhisperDownloadStatus] = useState<string>('')
     const [whisperModelPath, setWhisperModelPath] = useState<string>('')
     const [downloadedModels, setDownloadedModels] = useState<Set<string>>(new Set())
+    const [whisperTask, setWhisperTask] = useState<'transcribe' | 'translate'>('transcribe')
 
     const { devices: audioDevices, selectedDeviceId: selectedAudioDevice, isLoading: audioDevicesLoading, selectDevice: setAudioDevice, reloadDevices: reloadAudioDevices } = useAudioDevices()
 
@@ -333,6 +325,9 @@ export function SettingsView() {
             if (config.whisperModelPath) {
                 setWhisperModelPath(config.whisperModelPath)
             }
+            if (config.whisperTask) {
+                setWhisperTask(config.whisperTask)
+            }
 
             if (config.hotkey) {
                 const parts = config.hotkey.split('+')
@@ -399,6 +394,12 @@ export function SettingsView() {
         setWhisperModel(modelId)
         await window.electronAPI.saveConfig({ whisperModel: modelId })
         showToast(t('settings.engine.modelSaved'), 'success')
+    }
+
+    const handleWhisperTaskChange = async (task: 'transcribe' | 'translate') => {
+        setWhisperTask(task)
+        await window.electronAPI.saveConfig({ whisperTask: task })
+        showToast(t('settings.engine.taskSaved'), 'success')
     }
 
     const handleDownloadWhisperModel = async () => {
@@ -940,17 +941,176 @@ export function SettingsView() {
                         </div>
 
                         {transcriptionEngine === 'gemini' ? (
-                            <div className="list-grouped-card">
-                                <div className="list-grouped-item no-border">
-                                    <div className="list-item-left">
-                                        <span className="list-item-label">{t('settings.engine.gemini')}</span>
-                                        <span className="list-item-hint">{t('settings.engine.geminiDesc')}</span>
-                                        <span className="list-item-hint" style={{ marginTop: 4, opacity: 0.7 }}>
-                                            {t('settings.engine.geminiHint')}
-                                        </span>
+                            <>
+                                {/* API Key */}
+                                <div className="list-grouped-card">
+                                    <div className="list-grouped-item">
+                                        <div className="list-item-left">
+                                            <span className="list-item-label">
+                                                {t('settings.api.apiKey')}
+                                                {hasEnvKey && <span className="env-badge">.env</span>}
+                                            </span>
+                                            <ConnectionStatus isValid={isValid} isChecking={isValidating} error={error} />
+                                        </div>
+                                    </div>
+                                    <div className="list-grouped-item no-border">
+                                        {hasEnvKey ? (
+                                            <div className="env-notice">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                                </svg>
+                                                <span>{t('settings.api.envKeyInUse')}</span>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                                <div className="input-with-toggle">
+                                                    <input
+                                                        type={showApiKey ? 'text' : 'password'}
+                                                        className="settings-input"
+                                                        placeholder="AIzaSy..."
+                                                        value={apiKeyInput}
+                                                        onChange={(e) => setApiKeyInput(e.target.value)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
+                                                    />
+                                                    <button
+                                                        className="input-toggle-btn"
+                                                        onClick={() => setShowApiKey(!showApiKey)}
+                                                        title={showApiKey ? t('settings.api.hide') : t('settings.api.show')}
+                                                        tabIndex={-1}
+                                                    >
+                                                        {showApiKey ? (
+                                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                                                <line x1="1" y1="1" x2="23" y2="23" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                                <circle cx="12" cy="12" r="3" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                <div className="button-row single-button">
+                                                    <button
+                                                        className="btn btn-primary btn-full"
+                                                        onClick={handleSaveApiKey}
+                                                        disabled={isValidating || !apiKeyInput.trim()}
+                                                    >
+                                                        {isValidating ? (
+                                                            <span className="btn-spinner"></span>
+                                                        ) : (
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                                                <polyline points="9 12 12 15 16 10"></polyline>
+                                                            </svg>
+                                                        )}
+                                                        {isValid ? t('settings.api.verified') : t('settings.api.saveAndVerify')}
+                                                    </button>
+                                                </div>
+                                                <p className="settings-hint">
+                                                    {t('settings.api.getKeyAt')}{' '}
+                                                    <a
+                                                        href="#"
+                                                        className="link"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            window.electronAPI.openExternal('https://aistudio.google.com/app/apikey')
+                                                        }}
+                                                    >
+                                                        aistudio.google.com
+                                                    </a>
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
+
+                                {/* Gemini Model */}
+                                <div className="list-grouped-card">
+                                    <div className="list-grouped-item">
+                                        <div className="list-item-left">
+                                            <span className="list-item-label">{t('settings.api.geminiModel')}</span>
+                                        </div>
+                                    </div>
+                                    <div className="list-grouped-item no-border">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <select
+                                                    className="settings-select"
+                                                    value={geminiModel}
+                                                    onChange={(e) => handleGeminiModelChange(e.target.value)}
+                                                    disabled={isLoadingModels || availableModels.length === 0}
+                                                    style={{ flex: 1 }}
+                                                >
+                                                    {isLoadingModels ? (
+                                                        <option value="">{t('common.loading')}...</option>
+                                                    ) : availableModels.length > 0 ? (
+                                                        availableModels.map((model) => (
+                                                            <option key={model.name} value={model.name}>
+                                                                {model.displayName}
+                                                            </option>
+                                                        ))
+                                                    ) : (
+                                                        <option value="">{t('settings.api.noModels')}</option>
+                                                    )}
+                                                </select>
+                                                <button
+                                                    className="btn btn-secondary btn-small"
+                                                    onClick={loadGeminiModels}
+                                                    disabled={isLoadingModels}
+                                                    title={t('settings.api.refreshModels')}
+                                                >
+                                                    {isLoadingModels ? (
+                                                        <span className="btn-spinner"></span>
+                                                    ) : (
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M23 4v6h-6"></path>
+                                                            <path d="M1 20v-6h6"></path>
+                                                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <p className="settings-hint">{t('settings.api.modelHint')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Custom Prompt */}
+                                <div className="list-grouped-card">
+                                    <div className="list-grouped-item">
+                                        <div className="list-item-left">
+                                            <span className="list-item-label">
+                                                {t('settings.api.customPrompt')}
+                                                <span className="optional-badge">{t('settings.api.optional')}</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="list-grouped-item no-border">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                            <textarea
+                                                className="settings-textarea"
+                                                placeholder={t('settings.api.promptPlaceholder')}
+                                                value={customPrompt}
+                                                onChange={(e) => setCustomPrompt(e.target.value)}
+                                                rows={3}
+                                            />
+                                            <div className="textarea-footer">
+                                                <p className="settings-hint">{t('settings.api.promptHint')}</p>
+                                                <button
+                                                    className="btn btn-primary btn-small"
+                                                    onClick={handleSavePrompt}
+                                                    disabled={!customPrompt.trim()}
+                                                >
+                                                    {t('common.save')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         ) : (
                             <>
                                 <div className="list-grouped-card">
@@ -1028,6 +1188,46 @@ export function SettingsView() {
                                 <div className="list-grouped-card">
                                     <div className="list-grouped-item">
                                         <div className="list-item-left">
+                                            <span className="list-item-label">{t('settings.engine.whisperTask')}</span>
+                                            <span className="list-item-hint">{t('settings.engine.whisperTaskHint')}</span>
+                                        </div>
+                                    </div>
+                                    <div className="list-grouped-item no-border">
+                                        <div className="provider-selector" style={{ width: '100%' }}>
+                                            <div
+                                                className="provider-indicator"
+                                                style={{
+                                                    width: '50%',
+                                                    transform: whisperTask === 'transcribe' ? 'translateX(0)' : 'translateX(100%)',
+                                                }}
+                                            />
+                                            <button
+                                                className={`provider-option ${whisperTask === 'transcribe' ? 'active' : ''}`}
+                                                onClick={() => handleWhisperTaskChange('transcribe')}
+                                                type="button"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                                </svg>
+                                                <span className="provider-label">{t('settings.engine.taskTranscribe')}</span>
+                                            </button>
+                                            <button
+                                                className={`provider-option ${whisperTask === 'translate' ? 'active' : ''}`}
+                                                onClick={() => handleWhisperTaskChange('translate')}
+                                                type="button"
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                                                </svg>
+                                                <span className="provider-label">{t('settings.engine.taskTranslate')}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="list-grouped-card">
+                                    <div className="list-grouped-item">
+                                        <div className="list-item-left">
                                             <span className="list-item-label">{t('settings.engine.modelFolder')}</span>
                                             <span className="list-item-hint">{t('settings.engine.modelFolderHint')}</span>
                                         </div>
@@ -1060,191 +1260,6 @@ export function SettingsView() {
                                 </div>
                             </>
                         )}
-                    </div>
-                )
-
-            case 'api':
-                return (
-                    <div className="settings-content-panel">
-                        <h2 className="content-panel-title">
-                            {t('settings.api.title')}
-                            <ConnectionStatus
-                                isValid={isValid}
-                                isChecking={isValidating}
-                                error={error}
-                            />
-                        </h2>
-
-                        <div className="list-grouped-card">
-                            <div className="list-grouped-item">
-                                <div className="list-item-left">
-                                    <span className="list-item-label">
-                                        {t('settings.api.apiKey')}
-                                        {hasEnvKey && <span className="env-badge">.env</span>}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="list-grouped-item no-border">
-                                {hasEnvKey ? (
-                                    <div className="env-notice">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                        </svg>
-                                        <span>{t('settings.api.envKeyInUse')}</span>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                                        <div className="input-with-toggle">
-                                            <input
-                                                type={showApiKey ? 'text' : 'password'}
-                                                className="settings-input"
-                                                placeholder="AIzaSy..."
-                                                value={apiKeyInput}
-                                                onChange={(e) => setApiKeyInput(e.target.value)}
-                                                onKeyDown={(e) => e.key === 'Enter' && handleSaveApiKey()}
-                                            />
-                                            <button
-                                                className="input-toggle-btn"
-                                                onClick={() => setShowApiKey(!showApiKey)}
-                                                title={showApiKey ? t('settings.api.hide') : t('settings.api.show')}
-                                                tabIndex={-1}
-                                            >
-                                                {showApiKey ? (
-                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                                                        <line x1="1" y1="1" x2="23" y2="23" />
-                                                    </svg>
-                                                ) : (
-                                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                                        <circle cx="12" cy="12" r="3" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                        </div>
-                                        <div className="button-row single-button">
-                                            <button
-                                                className="btn btn-primary btn-full"
-                                                onClick={handleSaveApiKey}
-                                                disabled={isValidating || !apiKeyInput.trim()}
-                                            >
-                                                {isValidating ? (
-                                                    <span className="btn-spinner"></span>
-                                                ) : (
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                                        <polyline points="9 12 12 15 16 10"></polyline>
-                                                    </svg>
-                                                )}
-                                                {isValid ? t('settings.api.verified') : t('settings.api.saveAndVerify')}
-                                            </button>
-                                        </div>
-                                        <p className="settings-hint">
-                                            {t('settings.api.getKeyAt')}{' '}
-                                            <a
-                                                href="#"
-                                                className="link"
-                                                onClick={(e) => {
-                                                    e.preventDefault()
-                                                    window.electronAPI.openExternal('https://aistudio.google.com/app/apikey')
-                                                }}
-                                            >
-                                                aistudio.google.com
-                                            </a>
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="list-grouped-card">
-                            <div className="list-grouped-item">
-                                <div className="list-item-left">
-                                    <span className="list-item-label">
-                                        {t('settings.api.geminiModel')}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="list-grouped-item no-border">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                        <select
-                                            className="settings-select"
-                                            value={geminiModel}
-                                            onChange={(e) => handleGeminiModelChange(e.target.value)}
-                                            disabled={isLoadingModels || availableModels.length === 0}
-                                            style={{ flex: 1 }}
-                                        >
-                                            {isLoadingModels ? (
-                                                <option value="">{t('common.loading')}...</option>
-                                            ) : availableModels.length > 0 ? (
-                                                availableModels.map((model) => (
-                                                    <option key={model.name} value={model.name}>
-                                                        {model.displayName}
-                                                    </option>
-                                                ))
-                                            ) : (
-                                                <option value="">{t('settings.api.noModels')}</option>
-                                            )}
-                                        </select>
-                                        <button
-                                            className="btn btn-secondary btn-small"
-                                            onClick={loadGeminiModels}
-                                            disabled={isLoadingModels}
-                                            title={t('settings.api.refreshModels')}
-                                        >
-                                            {isLoadingModels ? (
-                                                <span className="btn-spinner"></span>
-                                            ) : (
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                    <path d="M23 4v6h-6"></path>
-                                                    <path d="M1 20v-6h6"></path>
-                                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                                </svg>
-                                            )}
-                                        </button>
-                                    </div>
-                                    <p className="settings-hint">
-                                        {t('settings.api.modelHint')}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="list-grouped-card">
-                            <div className="list-grouped-item">
-                                <div className="list-item-left">
-                                    <span className="list-item-label">
-                                        {t('settings.api.customPrompt')}
-                                        <span className="optional-badge">{t('settings.api.optional')}</span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="list-grouped-item no-border">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
-                                    <textarea
-                                        className="settings-textarea"
-                                        placeholder={t('settings.api.promptPlaceholder')}
-                                        value={customPrompt}
-                                        onChange={(e) => setCustomPrompt(e.target.value)}
-                                        rows={3}
-                                    />
-                                    <div className="textarea-footer">
-                                        <p className="settings-hint">
-                                            {t('settings.api.promptHint')}
-                                        </p>
-                                        <button
-                                            className="btn btn-primary btn-small"
-                                            onClick={handleSavePrompt}
-                                            disabled={!customPrompt.trim()}
-                                        >
-                                            {t('common.save')}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 )
 

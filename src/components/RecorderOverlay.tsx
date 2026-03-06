@@ -2,13 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAudioRecorder } from '../hooks/useAudioRecorder'
 import { decodeAudioToFloat32 } from '../utils/audioUtils'
 
-const LANGUAGES = [
-    { code: 'vi', label: 'Tiếng Việt' },
-    { code: 'en', label: 'English' },
-    { code: 'ja', label: '日本語' },
-    { code: 'ko', label: '한국어' },
-    { code: 'zh', label: '中文' },
-]
 
 type AppState = 'idle' | 'recording' | 'processing' | 'result' | 'settings'
 
@@ -44,7 +37,6 @@ export function RecorderOverlay() {
 
     const [appState, setAppState] = useState<AppState>('idle')
     const [isVisible, setIsVisible] = useState(false)
-    const [language, setLanguage] = useState('en')
     const [transcript, setTranscript] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [apiKey, setApiKey] = useState('')
@@ -89,10 +81,10 @@ export function RecorderOverlay() {
             let result: { success: boolean; text?: string; error?: string }
             if (transcriptionEngine === 'whisper') {
                 const pcmData = await decodeAudioToFloat32(blob)
-                result = await window.electronAPI.transcribeWhisperAudio(pcmData, language)
+                result = await window.electronAPI.transcribeWhisperAudio(pcmData, '')
             } else {
                 const arrayBuffer = await blob.arrayBuffer()
-                result = await window.electronAPI.transcribeAudio(arrayBuffer, language)
+                result = await window.electronAPI.transcribeAudio(arrayBuffer, '')
             }
 
             if (result.success && result.text) {
@@ -117,7 +109,7 @@ export function RecorderOverlay() {
             showToast('Lỗi kết nối tới API', 'error')
             setAppState('idle')
         }
-    }, [stopRecording, language, showToast, transcriptionEngine])
+    }, [stopRecording, showToast, transcriptionEngine])
 
     // Retry transcription with preserved recording data
     const handleRetryTranscribe = useCallback(async () => {
@@ -128,10 +120,10 @@ export function RecorderOverlay() {
             let result: { success: boolean; text?: string; error?: string }
             if (transcriptionEngine === 'whisper') {
                 const pcmData = await decodeAudioToFloat32(preservedBlob)
-                result = await window.electronAPI.transcribeWhisperAudio(pcmData, language)
+                result = await window.electronAPI.transcribeWhisperAudio(pcmData, '')
             } else {
                 const arrayBuffer = await preservedBlob.arrayBuffer()
-                result = await window.electronAPI.transcribeAudio(arrayBuffer, language)
+                result = await window.electronAPI.transcribeAudio(arrayBuffer, '')
             }
 
             if (result.success && result.text) {
@@ -156,13 +148,12 @@ export function RecorderOverlay() {
             showToast('Lỗi kết nối tới API', 'error')
             setAppState('idle')
         }
-    }, [preservedBlob, language, showToast, transcriptionEngine])
+    }, [preservedBlob, showToast, transcriptionEngine])
 
     useEffect(() => {
         if (!window.electronAPI) return
         window.electronAPI.getConfig().then((config) => {
             if (config.apiKey) setApiKey(config.apiKey)
-            if (config.language) setLanguage(config.language)
             if (config.transcriptionEngine) setTranscriptionEngine(config.transcriptionEngine)
             if (config.hotkey) {
                 const parts = config.hotkey.split('+')
@@ -267,7 +258,7 @@ export function RecorderOverlay() {
             const result = await window.electronAPI.validateApiKey(apiKeyInput.trim())
 
             if (result.valid) {
-                await window.electronAPI.saveConfig({ apiKey: apiKeyInput.trim(), language })
+                await window.electronAPI.saveConfig({ apiKey: apiKeyInput.trim() })
                 setApiKey(apiKeyInput.trim())
                 showToast('API Key đã được lưu!', 'success')
                 setAppState('idle')
@@ -290,17 +281,8 @@ export function RecorderOverlay() {
     if (!isVisible) return null
 
     return (
-        <>
-            {/* Toast notification - positioned outside overlay, always visible on top */}
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
-            <div className="overlay-container">
-                <div className="overlay-card">
+        <div className="overlay-container">
+            <div className="overlay-card">
                 <div className="overlay-header">
                     <div className="header-left">
                         <div className={`recording-dot ${appState === 'recording' ? 'active' : ''} ${appState === 'processing' ? 'processing' : ''}`} />
@@ -313,18 +295,6 @@ export function RecorderOverlay() {
                         </span>
                     </div>
                     <div className="header-right">
-                        <select
-                            className="language-select"
-                            value={language}
-                            onChange={(e) => {
-                                setLanguage(e.target.value)
-                                window.electronAPI.saveConfig({ apiKey, language: e.target.value })
-                            }}
-                        >
-                            {LANGUAGES.map((l) => (
-                                <option key={l.code} value={l.code}>{l.label}</option>
-                            ))}
-                        </select>
                         <button
                             className="btn-icon"
                             onClick={() => setAppState(appState === 'settings' ? 'idle' : 'settings')}
@@ -448,7 +418,14 @@ export function RecorderOverlay() {
                     {hotkey.key} để toggle
                 </div>
             </div>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
-        </>
     )
 }
