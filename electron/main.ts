@@ -1064,19 +1064,30 @@ async function transcribeAudio(audioBuffer: ArrayBuffer, language: string): Prom
     }]
   }
 
-  const response = await fetchGemini(apiKey, payload)
+  const endpoint = `gemini://${config.geminiModel || 'gemini-3.0-flash'}`
+  const callMetrics = performanceMonitor.startApiCall(endpoint, 'POST')
+  const startTime = Date.now()
+  try {
+    const response = await fetchGemini(apiKey, payload)
 
-  if (!response || !response.ok) {
-    const errorData = response ? await response.json().catch(() => ({ error: { message: 'Failed to parse error response' } })) : { error: { message: 'Network error or all retries failed' } }
-    console.error('Gemini API error:', JSON.stringify(errorData, null, 2))
-    throw new Error(errorData.error?.message || `API_ERROR: HTTP ${response?.status || 'unknown'}`)
+    if (!response || !response.ok) {
+      const errorData = response ? await response.json().catch(() => ({ error: { message: 'Failed to parse error response' } })) : { error: { message: 'Network error or all retries failed' } }
+      console.error('Gemini API error:', JSON.stringify(errorData, null, 2))
+      performanceMonitor.completeApiCall(callMetrics, response?.status || 500, Date.now() - startTime)
+      throw new Error(errorData.error?.message || `API_ERROR: HTTP ${response?.status || 'unknown'}`)
+    }
+
+    const data = await response.json()
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
+
+    const punctuationSettings = config.punctuationSettings || DEFAULT_PUNCTUATION_SETTINGS
+    const result = formatText(rawText, punctuationSettings)
+    performanceMonitor.completeApiCall(callMetrics, 200, Date.now() - startTime)
+    return result
+  } catch (err) {
+    performanceMonitor.completeApiCall(callMetrics, 500, Date.now() - startTime)
+    throw err
   }
-
-  const data = await response.json()
-  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
-
-  const punctuationSettings = config.punctuationSettings || DEFAULT_PUNCTUATION_SETTINGS
-  return formatText(rawText, punctuationSettings)
 }
 
 // ============================================================
@@ -1154,22 +1165,36 @@ async function getWhisperPipeline(modelId: string) {
 
 async function transcribeWithWhisper(pcmFloat32: Float32Array, language: string): Promise<string> {
   const config = loadConfig()
-  const modelId = config.whisperModel || 'onnx-community/whisper-small'
+  const modelId = config.whisperModel
 
   const pipe = await getWhisperPipeline(modelId)
 
-  const whisperTask = config.whisperTask || 'transcribe'
+  const whisperTask = config.whisperTask
 
-  // Use generation parameters to control output behavior
-  // Large models like turbo need stronger repetition penalties
+  // Mirror the whisper.cpp / Handy approach:
+  // - Beam search (beam_size=3) gives better accuracy than greedy decoding
+  // - condition_on_prev_tokens=false prevents the model from hallucinating
+  //   based on its own previous output (main cause of repeated "Hello, hello, hello...")
+  // - compression_ratio_threshold & logprob_threshold reject low-quality segments
+  //   (same as whisper.cpp's built-in quality gates)
+  const isLargeModel = modelId.toLowerCase().includes('large') || modelId.toLowerCase().includes('turbo')
+
+  const generateKwargs: Record<string, any> = {
+    num_beams: 3,                       // beam search — same as whisper.cpp default
+    do_sample: false,                   // no random sampling when using beams
+    max_new_tokens: 448,                // Whisper's natural maximum
+    condition_on_prev_tokens: false,    // key: stops hallucination loops
+    compression_ratio_threshold: 2.4,  // reject overly repetitive segments
+    logprob_threshold: -1.0,           // reject low-confidence segments
+    no_speech_threshold: 0.6,          // treat as silence when no-speech prob > 0.6
+  }
+  if (isLargeModel) {
+    generateKwargs.repetition_penalty = 1.3  // extra safety for large/turbo models
+  }
+
   const generationOptions: Record<string, any> = {
     task: whisperTask,
-    generate_kwargs: {
-      temperature: 0.0,              // 0.0 = deterministic, no creativity
-      repetition_penalty: 3.0,       // High penalty to prevent repetition (2.0-4.0 for large models)
-      no_repeat_ngram_size: 5,       // Prevent repeating 5-grams (larger = stricter)
-      max_new_tokens: 256,          // Limit output length to prevent runaway generation
-    },
+    generate_kwargs: generateKwargs,
   }
 
   // Try to force language auto-detection by passing empty language token
@@ -1181,55 +1206,47 @@ async function transcribeWithWhisper(pcmFloat32: Float32Array, language: string)
     'en': 'english',
   }
 
-  // Only use specific language if explicitly set (not "auto")
-  // For "auto" or empty, let Whisper detect the language naturally
+  // Only set language when explicitly provided; otherwise let Whisper auto-detect.
   const normalizedLang = language?.toLowerCase().trim()
-  
   if (normalizedLang && normalizedLang !== 'auto' && languageMap[normalizedLang]) {
-    // User explicitly chose a language - use it
     generationOptions.language = languageMap[normalizedLang]
     console.log(`Using explicit language: ${generationOptions.language}`)
   } else {
-    // Auto-detect - try to bypass default English by passing an empty/invalid language
-    // This may trigger auto-detection behavior in the model
     console.log('Using auto language detection')
   }
 
-  const result = await pipe(pcmFloat32, generationOptions)
+  const callMetrics = performanceMonitor.startApiCall('local://whisper', 'PROCESS')
+  const startTime = Date.now()
+  let result: any
+  try {
+    result = await pipe(pcmFloat32, generationOptions)
+    performanceMonitor.completeApiCall(callMetrics, 200, Date.now() - startTime)
+  } catch (err) {
+    performanceMonitor.completeApiCall(callMetrics, 500, Date.now() - startTime)
+    throw err
+  }
 
   let rawText = (result?.text || '').trim()
 
-  // Post-process to remove common audio descriptions that large models might add
-  // These patterns are commonly generated by large Whisper models
-  const audioDescriptionPatterns = [
-    /\[.*?\]/g,                    // [laughter], [music], [applause]
-    /\(.*?\)/g,                    // (silence), (laughing)
-    /\b(music|singing|song)\b/gi,  // music, singing, song
-    /\b(background noise|ambient noise|static)\b/gi,
-    /\b(speaker \d+|speaker [a-z]+)\b/gi,
-    /\b(woman|man|person) (saying|talking|speaking|whispering)\b/gi,
-    /\b(voice|voices)\b/gi,
-    /\b(audio|recording|speech)\b/gi,
-    /^\s*[\[\(]?(silence|blank|unintelligible)[\]\)]?\s*$/gi,
-    /\b(reference|refer to|this is|that is)\b/gi,
-    /^[\s,\.]+|[\s,\.]+$/g,  // Leading/trailing punctuation
-  ]
+  // Remove Whisper's own annotation tokens: [laughter], [music], (silence), etc.
+  // These are bracketed/parenthesised tokens injected by the model itself, not real speech.
+  // Do NOT remove bare words — that would corrupt legitimate transcription.
+  rawText = rawText.replace(/\[.*?\]/g, '')  // [laughter], [music], [BLANK_AUDIO]
+  rawText = rawText.replace(/\(.*?\)/g, '')  // (silence), (laughing)
 
-  for (const pattern of audioDescriptionPatterns) {
-    rawText = rawText.replace(pattern, '')
+  // Discard output that is only a no-speech sentinel
+  if (/^\s*(silence|blank|unintelligible|♪|♫)\s*$/i.test(rawText)) {
+    rawText = ''
   }
 
-  // Additional cleanup for repeated words/patterns (e.g., "hello hello hello...")
-  // Find any word or short phrase repeated 3+ times and reduce to single occurrence
-  rawText = rawText.replace(/\b(\w+)(?:\s+\1){2,}\b/gi, '$1')  // "hello hello hello" -> "hello"
-  rawText = rawText.replace(/(.{1,10})\1{2,}/gi, '$1$1')       // Short pattern repeat: keep 2
+  // For large/turbo models only: collapse aggressive repetition loops that slip through
+  // e.g. "hello hello hello hello" → "hello hello" (keep up to 2 occurrences)
+  if (isLargeModel) {
+    rawText = rawText.replace(/\b(\w+)(?:\s+\1){3,}\b/gi, '$1 $1')  // 4+ repeats → 2
+  }
 
-  // Clean up multiple spaces
+  // Normalise whitespace
   rawText = rawText.replace(/\s+/g, ' ').trim()
-
-  // Remove leading/trailing punctuation that might remain
-  rawText = rawText.replace(/^[\s,\.]+|[\s,\.]+$/g, '').trim()
-  rawText = rawText.replace(/^[\s,\.]+|[\s,\.]+$/g, '').trim()
 
   const punctuationSettings = config.punctuationSettings || DEFAULT_PUNCTUATION_SETTINGS
   return formatText(rawText, punctuationSettings)
@@ -1544,7 +1561,17 @@ function setupIPC() {
     isRecording = false
     unregisterRecordingShortcuts()
     try {
-      const pcmFloat32 = new Float32Array(pcmArray)
+      let pcmFloat32 = new Float32Array(pcmArray)
+
+      // Pad short recordings to 1.25 s of silence (same as Handy / whisper.cpp behaviour).
+      // Whisper struggles with very short clips and may produce hallucinated output.
+      const WHISPER_SAMPLE_RATE = 16000
+      if (pcmFloat32.length < WHISPER_SAMPLE_RATE) {
+        const padded = new Float32Array(Math.ceil(WHISPER_SAMPLE_RATE * 1.25))
+        padded.set(pcmFloat32)
+        pcmFloat32 = padded
+      }
+
       const text = await transcribeWithWhisper(pcmFloat32, language)
       return { success: true, text }
     } catch (error: any) {

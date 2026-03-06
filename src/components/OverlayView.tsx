@@ -4,13 +4,6 @@ import { addToHistory } from '../lib/transcription-history'
 import { useI18n, AppLanguage } from '../i18n'
 import { decodeAudioToFloat32 } from '../utils/audioUtils'
 
-const LANGUAGES = [
-    { code: 'vi', label: 'VI' },
-    { code: 'en', label: 'EN' },
-    { code: 'ja', label: 'JA' },
-    { code: 'ko', label: 'KO' },
-    { code: 'zh', label: 'ZH' },
-]
 
 type OverlayState = 'idle' | 'recording' | 'processing'
 
@@ -46,7 +39,6 @@ export function OverlayView() {
     const [audioDeviceId, setAudioDeviceId] = useState<string>('')
     const { isRecording, duration, startRecording, stopRecording } = useAudioRecorder({ deviceId: audioDeviceId })
     const [state, setState] = useState<OverlayState>('idle')
-    const [language, setLanguage] = useState(i18nLang)
     const [error, setError] = useState<string | null>(null)
     const [isVisible, setIsVisible] = useState(false)
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
@@ -89,16 +81,16 @@ export function OverlayView() {
             let result: { success: boolean; text?: string; error?: string }
             if (transcriptionEngine === 'whisper') {
                 const pcmData = await decodeAudioToFloat32(blob)
-                result = await window.electronAPI.transcribeWhisperAudio(pcmData, language)
+                result = await window.electronAPI.transcribeWhisperAudio(pcmData, '')
             } else {
                 const arrayBuffer = await blob.arrayBuffer()
-                result = await window.electronAPI.transcribeAudio(arrayBuffer, language)
+                result = await window.electronAPI.transcribeAudio(arrayBuffer, '')
             }
             if (result.success && result.text) {
                 const trimmedText = result.text.trim()
                 addToHistory({
                     duration: currentDuration,
-                    language: language,
+                    language: '',
                     originalText: trimmedText,
                     wordCount: trimmedText.split(/\s+/).filter(Boolean).length,
                 })
@@ -113,7 +105,7 @@ export function OverlayView() {
             showToast(t('overlay.apiConnectionError'), 'error')
             setState('idle')
         }
-    }, [stopRecording, duration, language, showToast, t, transcriptionEngine])
+    }, [stopRecording, duration, showToast, t, transcriptionEngine])
 
 
 
@@ -126,16 +118,16 @@ export function OverlayView() {
             let result: { success: boolean; text?: string; error?: string }
             if (transcriptionEngine === 'whisper') {
                 const pcmData = await decodeAudioToFloat32(preservedBlob)
-                result = await window.electronAPI.transcribeWhisperAudio(pcmData, language)
+                result = await window.electronAPI.transcribeWhisperAudio(pcmData, '')
             } else {
                 const arrayBuffer = await preservedBlob.arrayBuffer()
-                result = await window.electronAPI.transcribeAudio(arrayBuffer, language)
+                result = await window.electronAPI.transcribeAudio(arrayBuffer, '')
             }
             if (result.success && result.text) {
                 const trimmedText = result.text.trim()
                 addToHistory({
                     duration: recordingDuration,
-                    language: language,
+                    language: '',
                     originalText: trimmedText,
                     wordCount: trimmedText.split(/\s+/).filter(Boolean).length,
                 })
@@ -150,12 +142,11 @@ export function OverlayView() {
             showToast(t('overlay.apiConnectionError'), 'error')
             setState('idle')
         }
-    }, [preservedBlob, language, showToast, t, transcriptionEngine])
+    }, [preservedBlob, showToast, t, transcriptionEngine])
 
     useEffect(() => {
         if (!window.electronAPI) return
         window.electronAPI.getConfig().then((config) => {
-            if (config.language) setLanguage(config.language as AppLanguage)
             if (config.audioDeviceId) setAudioDeviceId(config.audioDeviceId)
             if (config.transcriptionEngine) setTranscriptionEngine(config.transcriptionEngine)
         })
@@ -179,7 +170,6 @@ export function OverlayView() {
 
         const cleanupConfigUpdate = window.electronAPI.onConfigUpdated((partial) => {
             if (partial.language) {
-                setLanguage(partial.language as AppLanguage)
                 setI18nLanguage(partial.language as AppLanguage)
             }
         })
@@ -279,19 +269,6 @@ export function OverlayView() {
                         )
                     )}
                 </span>
-
-                <select
-                    className="mini-lang"
-                    value={language}
-                    onChange={(e) => {
-                        setLanguage(e.target.value as AppLanguage)
-                        window.electronAPI.saveConfig({ language: e.target.value })
-                    }}
-                >
-                    {LANGUAGES.map((l) => (
-                        <option key={l.code} value={l.code}>{l.label}</option>
-                    ))}
-                </select>
 
                 <button className="mini-btn-close" onClick={handleCancel} title="Cancel">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">

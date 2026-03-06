@@ -247,6 +247,14 @@ class PerformanceMonitor {
     if (this.apiCalls.length > this.maxCallsHistory) {
       this.apiCalls.shift();
     }
+
+    // Auto-update baseline to max observed latency once we have enough data.
+    // This makes "Time Saved %" meaningful: it reflects improvement relative
+    // to the slowest real call rather than an arbitrary hardcoded number.
+    if (this.apiCalls.length >= 3) {
+      const maxObserved = Math.max(...this.apiCalls.map(c => c.afterOptimization.totalMs));
+      this.baselineLatency = Math.max(this.baselineLatency, maxObserved);
+    }
   }
 
   getOptimizationStatus(): OptimizationStatus {
@@ -333,7 +341,7 @@ class PerformanceMonitor {
     const totalMisses = this.cacheMisses;
 
     return {
-      totalRequests: this.totalRequests,
+      totalRequests: this.apiCalls.length,
       successfulRequests: successful.length,
       failedRequests: failed.length,
       averageLatencyMs: avgLatency,
